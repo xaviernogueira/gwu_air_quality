@@ -28,6 +28,8 @@ def ncf_metadata(ncf_files):
      ----------
      Returns: a text file in the directory of the first .ncf file w/ all input file info
      """
+    import os
+    import netCDF4 as nc
     print('Input files: %s' % ncf_files)
 
     # define output dir for text file
@@ -76,7 +78,7 @@ def ncf_metadata(ncf_files):
     print('METADATA text file @ %s' % txt_dir)
     return txt_dir
 
-ncf_metadata(IN_LIST)
+
 
 
 
