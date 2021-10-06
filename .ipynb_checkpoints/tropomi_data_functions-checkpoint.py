@@ -15,8 +15,6 @@ from sklearn.preprocessing import StandardScaler
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.io import shapereader
-import requests
-import iso3166
 
 # inputs for running locally
 DIR = r'C:\Users\xrnogueira\Documents\Data'
@@ -83,51 +81,7 @@ def ncf_metadata(ncf_files):
     return print('METADATA text file @ %s' % txt_dir)
 
 
-def get_boundingbox_country(place, output_as='boundingbox', integer=False):
-    """
-    get the bounding box of a country or US state in EPSG4326 given it's name
-    author @mattijin (https://github.com/mattijn)
-
-    Parameters:
-    place - a name (str) of a country or US state in english and lowercase
-    output_as - either boundingbox' or 'center' (str)
-         * 'boundingbox' for [latmin, latmax, lonmin, lonmax]
-         * 'center' for [latcenter, loncenter]
-    integer - default is False (bool), if True the output list is converted to integers
-    ------------------
-    Returns:
-    output - a list with coordinates as floats i.e., [[11.777, 53.7253321, -70.2695876, 7.2274985]]
-    """
-    # create url to pull openstreetmap data
-    url_prefix = 'http://nominatim.openstreetmap.org/search?country='
-
-    country_list = [j.lower() for j in iso3166.countries_by_name.keys()]
-
-    if place not in country_list:
-        url_prefix = url_prefix.replace('country=', 'state=')
-
-    url = '{0}{1}{2}'.format(url_prefix, place, '&format=json&polygon=0')
-    response = requests.get(url).json()[0]
-
-    # parse response to list, convert to integer if desired
-    if output_as == 'boundingbox':
-        lst = response[output_as]
-        output = [float(i) for i in lst]
-
-    elif output_as == 'center':
-        lst = [response.get(key) for key in ['lat', 'lon']]
-        output = [float(i) for i in lst]
-    else:
-        print('ERROR: output_as parameter must set to either boundingbox or center (str)')
-        return
-
-    if integer:
-        output = [int(i) for i in output]
-
-    return output
-
-
-def no2_plotting(no2_file, latlong_file, std=True, cmap_max=0, extent=[]):
+def no2_plotting(no2_file, latlong_file='', cmap_max=0, extent=[]):
     """
      Parameters:
          no2_file - A path (str) of a .ncf file w/ no2 data
@@ -138,41 +92,18 @@ def no2_plotting(no2_file, latlong_file, std=True, cmap_max=0, extent=[]):
      ----------
      Returns: an no2 concentration colormap plot w/ the selected extent
     """
-    # bring in data
     no2_ncf = nc.Dataset(no2_file)
-    no2_raw = no2_ncf.variables['NO2'][:]
-    geo_ncf = nc.Dataset(latlong_file)
+    no2 = no2_ncf.variables['NO2'][:]
+    no2_std = StandardScaler().fit_transform(no2)
 
-    lon, lat = geo_ncf.variables['LON'][:], geo_ncf.variables['LAT'][:]
-
-    if std:
-        no2 = StandardScaler().fit_transform(no2_raw)
-        unit = 'standard deviations'
-    else:
-        no2 = no2_raw
-        unit = 'molecules / cm2'
-
-    proj = ccrs.PlateCarree()
-    ax = plt.axes(projection=proj)
-    im = ax.pcolormesh(lon, lat, no2, cmap=cm.coolwarm, shading='auto')
-    # ax.gridlines(proj, draw_labels=True, linestyle='--', color='grey')
-    plt.colorbar(im, location='bottom', label='NO2 concentration (%s)' % unit)
-
-    # add geographic features (may not work unless on cartopy 0.20.0)
-    ax.add_feature(cfeature.LAND)
-    ax.add_feature(cfeature.OCEAN)
-    ax.add_feature(cfeature.LAKES)
-    ax.add_feature(cfeature.COASTLINE)
-    ax.add_feature(cfeature.BORDERS)
-    ax.add_feature(cfeature.STATES, linestyle=':')
-
+    print(no2)
+    fig, ax = plt.subplots()
+    im = ax.imshow(no2_std, interpolation='bilinear', cmap=cm.coolwarm,
+                   origin='lower')
+    plt.colorbar(im, location='bottom', label='NO2 concentration (standard deviation)')
     plt.show()
 
-
-#no2_plotting(TROP_ALL, LATLONG, std=False)
-print(get_boundingbox_country('washington', output_as='boundingbox', integer=False))
-
-
+no2_plotting(TROP_ALL)
 
 
 
