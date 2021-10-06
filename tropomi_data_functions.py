@@ -83,7 +83,7 @@ def ncf_metadata(ncf_files):
     return print('METADATA text file @ %s' % txt_dir)
 
 
-def get_boundingbox(place, output_as='boundingbox', integer=False, state_override=False):
+def get_boundingbox(place, output_as='boundingbox', state_override=False):
     """
     get the bounding box of a country or US state in EPSG4326 given it's name
     author @mattijin (https://github.com/mattijn)
@@ -128,13 +128,10 @@ def get_boundingbox(place, output_as='boundingbox', integer=False, state_overrid
         print('ERROR: output_as parameter must set to either boundingbox or center (str)')
         return
 
-    if integer:
-        output = [int(i) for i in output]
-
     return output
 
 
-def usa_no2_plotting(no2_file, latlong_file, std=True, place=''):
+def no2_plotting(no2_file, latlong_file, std=True, place='', state=False):
     """
      Parameters:
          no2_file - A path (str) of a .ncf file w/ no2 data
@@ -163,6 +160,7 @@ def usa_no2_plotting(no2_file, latlong_file, std=True, place=''):
     im = ax.pcolormesh(lon, lat, no2, cmap=cm.coolwarm, shading='auto')
 
     # add geographic features (may not work unless on cartopy 0.20.0)
+    ax.gridlines(proj, draw_labels=True, linestyle='--')
     ax.add_feature(cfeature.LAND)
     ax.add_feature(cfeature.OCEAN)
     ax.add_feature(cfeature.LAKES)
@@ -172,7 +170,7 @@ def usa_no2_plotting(no2_file, latlong_file, std=True, place=''):
 
     # set extent based on place parameter
     if place != '':
-        bounds = get_boundingbox(place, output_as='boundingbox', integer=True, state_override=True)
+        bounds = get_boundingbox(place, output_as='boundingbox', state_override=state)
         print(bounds)
         ax.set_extent(bounds, crs=ccrs.PlateCarree())
 
@@ -181,7 +179,8 @@ def usa_no2_plotting(no2_file, latlong_file, std=True, place=''):
 
     plt.show()
 
-usa_no2_plotting(TROP_ALL, LATLONG, std=False, place='washington')
+
+no2_plotting(TROP_ALL, LATLONG, std=False, place='new york city')
 
 
 
