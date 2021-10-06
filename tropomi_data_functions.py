@@ -180,6 +180,8 @@ def no2_plotting(no2_file, latlong_file, std=True, place='', state=False):
     plt.show()
 
 
+# run functions
+ncf_metadata(IN_LIST[:-1])
 no2_plotting(TROP_ALL, LATLONG, std=False, place='new york city')
 
 
