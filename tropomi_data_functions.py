@@ -83,17 +83,18 @@ def ncf_metadata(ncf_files):
     return print('METADATA text file @ %s' % txt_dir)
 
 
-def get_boundingbox_country(place, output_as='boundingbox', integer=False):
+def get_boundingbox(place, output_as='boundingbox', integer=False, state_override=False):
     """
     get the bounding box of a country or US state in EPSG4326 given it's name
     author @mattijin (https://github.com/mattijn)
 
     Parameters:
-    place - a name (str) of a country or US state in english and lowercase
+    place - a name (str) of a country, city, or state in english and lowercase (i.e., beunos aires)
     output_as - either boundingbox' or 'center' (str)
          * 'boundingbox' for [latmin, latmax, lonmin, lonmax]
          * 'center' for [latcenter, loncenter]
     integer - default is False (bool), if True the output list is converted to integers
+    state_override - default is False (bool), only make True if mapping a state
     ------------------
     Returns:
     output - a list with coordinates as floats i.e., [[11.777, 53.7253321, -70.2695876, 7.2274985]]
@@ -104,7 +105,10 @@ def get_boundingbox_country(place, output_as='boundingbox', integer=False):
     country_list = [j.lower() for j in iso3166.countries_by_name.keys()]
 
     if place not in country_list:
-        url_prefix = url_prefix.replace('country=', 'state=')
+        if state_override:
+            url_prefix = url_prefix.replace('country=', 'state=')
+        else:
+            url_prefix = url_prefix.replace('country=', 'city=')
 
     url = '{0}{1}{2}'.format(url_prefix, place, '&format=json&polygon=0')
     response = requests.get(url).json()[0]
@@ -112,11 +116,14 @@ def get_boundingbox_country(place, output_as='boundingbox', integer=False):
     # parse response to list, convert to integer if desired
     if output_as == 'boundingbox':
         lst = response[output_as]
-        output = [float(i) for i in lst]
+        coors = [float(i) for i in lst]
+        output = [coors[-2], coors[-1], coors[0], coors[1]]
 
     elif output_as == 'center':
         lst = [response.get(key) for key in ['lat', 'lon']]
-        output = [float(i) for i in lst]
+        coors = [float(i) for i in lst]
+        output = [coors[-1], coors[0]]
+
     else:
         print('ERROR: output_as parameter must set to either boundingbox or center (str)')
         return
@@ -127,14 +134,13 @@ def get_boundingbox_country(place, output_as='boundingbox', integer=False):
     return output
 
 
-def no2_plotting(no2_file, latlong_file, std=True, cmap_max=0, extent=[]):
+def usa_no2_plotting(no2_file, latlong_file, std=True, place=''):
     """
      Parameters:
          no2_file - A path (str) of a .ncf file w/ no2 data
          latlong_file - A path (str, optional) to a matching extent .ncf file w/ lat long data
-         cmap_max - optional, the maximum color map value to adjust color stretch
-         extent - optional, either a len=4 list w/ [xlims, ylims] or a shapefile from which said values are extracted
-         * Note that extent values must be in lat long if a latlong_file is specified *
+          place - optional, a country, city, or state* place name in lowercase (str) that sets the mapping extent
+          state* - default=False, must be set to True if the place name is a state
      ----------
      Returns: an no2 concentration colormap plot w/ the selected extent
     """
@@ -155,8 +161,6 @@ def no2_plotting(no2_file, latlong_file, std=True, cmap_max=0, extent=[]):
     proj = ccrs.PlateCarree()
     ax = plt.axes(projection=proj)
     im = ax.pcolormesh(lon, lat, no2, cmap=cm.coolwarm, shading='auto')
-    # ax.gridlines(proj, draw_labels=True, linestyle='--', color='grey')
-    plt.colorbar(im, location='bottom', label='NO2 concentration (%s)' % unit)
 
     # add geographic features (may not work unless on cartopy 0.20.0)
     ax.add_feature(cfeature.LAND)
@@ -166,11 +170,19 @@ def no2_plotting(no2_file, latlong_file, std=True, cmap_max=0, extent=[]):
     ax.add_feature(cfeature.BORDERS)
     ax.add_feature(cfeature.STATES, linestyle=':')
 
+    # set extent based on place parameter
+    if place != '':
+        bounds = get_boundingbox(place, output_as='boundingbox', integer=True, state_override=True)
+        print(bounds)
+        ax.set_extent(bounds, crs=ccrs.PlateCarree())
+
+    # add color bar
+    plt.colorbar(im, location='bottom', label='NO2 concentration (%s)' % unit)
+
     plt.show()
 
+usa_no2_plotting(TROP_ALL, LATLONG, std=False, place='washington')
 
-#no2_plotting(TROP_ALL, LATLONG, std=False)
-print(get_boundingbox_country('washington', output_as='boundingbox', integer=False))
 
 
 
