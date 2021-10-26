@@ -19,11 +19,10 @@ import requests
 import iso3166
 
 # inputs for running locally
-DIR = r'C:\Users\xrnogueira\Documents\Data'
+DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi'
 LATLONG = DIR + '\\LatLonGrid.ncf'
-TROP_ALL = DIR + '\\Tropomi_NO2_griddedon0p01grid_allyears_QA75.ncf'
 TROP_2019 = DIR + '\\Tropomi_NO2_griddedon0p01grid_2019_QA75.ncf'
-IN_LIST = [LATLONG, TROP_ALL, TROP_2019]
+IN_LIST = [LATLONG, TROP_2019]
 
 
 def ncf_metadata(ncf_files):
@@ -182,7 +181,7 @@ def no2_plotting(no2_file, latlong_file, std=True, place='', state=False):
 
 # run functions
 #ncf_metadata(IN_LIST[:-1])
-no2_plotting(TROP_ALL, LATLONG, std=False, place='los angeles')
+no2_plotting(TROP_2019, LATLONG, std=False, place='los angeles')
 
 
 
