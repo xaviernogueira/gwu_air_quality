@@ -39,3 +39,109 @@ def cmd(command):
     logger.info(msg)
 
     return
+
+
+def convert_raster(in_raster, out_folder='', out_form=['GTiff', '.tif']):
+    """
+    :param in_raster: An input raster that is not the same format as the out_form
+    :param out_folder: optional, allows output folder to be specified and created. Default is same folder as input.
+    :param out_form: A list storing the output format gdal name [0] and the extension [1]. default it GeoTIFF.
+    :return: path of created GeoTIFF file (or other format)
+    """
+    import osgeo
+    from osgeo import gdal
+
+    # Open existing dataset
+    in_file = gdal.Open(in_raster)
+
+    if out_folder == '':
+        out_folder = os.path.dirname(in_raster)
+
+    out_dir = out_folder + '\\' + out_form[1]
+
+    # Ensure number of bands in GeoTiff will be same as in GRIB file.
+    bands = []  # Set up array for gdal.Translate().
+    if in_file is not None:
+        band_num = in_file.RasterCount  # Get band count
+    for i in range(band_num + 1):  # Update array based on band count
+        if i == 0:  # gdal starts band counts at 1, not 0 like the Python for loop does.
+            pass
+        else:
+            bands.append(i)
+
+    # Output to new format using gdal.Translate. See https://gdal.org/python/ for osgeo.gdal.Translate options.
+    out_file = gdal.Translate(out_dir, in_file, format=out_form[0], bandList=bands)
+
+    # Properly close the datasets to flush to disk
+    in_file = None
+    out_file = None
+
+    return out_dir
+
+
+def move_or_delete_files(in_folder, out_folder, str_in):
+    """
+    Moves files from one folder to another by a string query
+    :param in_folder: Folder containing files to be moved
+    :param out_folder: Folder to move files to, if 'False', files will be deleted!!
+    :param str_in: string that if is contained within a file path, the file is selected to move
+    """
+    import shutil
+
+    # initialize logger and find files
+    init_logger(__file__)
+    all_files = os.listdir(in_folder)
+    move_names = []
+
+    for file in all_files:
+        if str_in in file:
+            move_names.append(file)
+
+    move_dirs = [(in_folder + '\\%s' % i) for i in move_names]
+
+    if isinstance(out_folder, str):
+        # make out_folder if it doesn't exist already
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
+
+        # create output locations and move files
+        out_dirs = [(out_folder + '\\%s' % i) for i in move_names]
+
+        for i, dir in enumerate(move_dirs):
+            shutil.move(dir, out_dirs[i])
+            logging.info('Moved %s from %s to %s' % (move_names[i], in_folder, out_folder))
+
+        return out_folder
+
+    elif isinstance(out_folder, bool) and not out_folder:
+        # take user input to list of files to be deleted
+        print('STOP SIGN: Check list of files that will be deletes, if valid input True!')
+
+        if input:
+            for dir in move_dirs:
+                os.remove(dir)
+                logging.info('Deleted %s' % move_dirs)
+
+            return print('Deleted %s files in %s' % (len(move_dirs), in_folder))
+
+    else:
+        return print('out_folder parameter must be a directory name to move files, or =False to delete files')
+
+
+#################################################
+grib_folder = r'C:\Users\xrnogueira\Documents\Data\ERA5'
+grib_names = ['adaptor.mars.internal-1635286250.629378-14702-18-1f39c8bd-16fa-49d7-893b-9d5b664ae235.grib',
+              'adaptor.mars.internal-1635286519.6098378-21899-3-eeb1763a-3215-422b-b76d-1e5f57b5dcee.grib']
+
+gribs = [grib_folder + '\\' + i for i in grib_names]
+
+
+#################################################
+def main():
+    for i in gribs:
+        print(i)
+        convert_raster(i, out_folder='', out_form=['GTiff', '.tif'])
+
+
+if __name__ == "__main__":
+    main()
