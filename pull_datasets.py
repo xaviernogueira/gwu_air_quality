@@ -57,7 +57,8 @@ def convert_raster(in_raster, out_folder='', out_form=['GTiff', '.tif']):
     if out_folder == '':
         out_folder = os.path.dirname(in_raster)
 
-    out_dir = out_folder + '\\' + out_form[1]
+    no_ext = os.path.splitext(os.path.basename(in_raster))[0]
+    out_dir = out_folder + '\\%s' % no_ext + out_form[1]
 
     # Ensure number of bands in GeoTiff will be same as in GRIB file.
     bands = []  # Set up array for gdal.Translate().
@@ -115,12 +116,17 @@ def move_or_delete_files(in_folder, out_folder, str_in):
 
     elif isinstance(out_folder, bool) and not out_folder:
         # take user input to list of files to be deleted
-        print('STOP SIGN: Check list of files that will be deletes, if valid input True!')
+        print('STOP SIGN: Check list of files that will be deletes, enter Y to proceed and N to stop!')
+        print('Files to delete: %s ' % move_names)
+        val = input('Input Y to proceed:')
 
-        if input:
+        if val:
             for dir in move_dirs:
-                os.remove(dir)
-                logging.info('Deleted %s' % move_dirs)
+                try:
+                    os.remove(dir)
+                    logging.info('Deleted %s' % dir)
+                except PermissionError:
+                    print('Could not get permission to delete %s' % dir)
 
             return print('Deleted %s files in %s' % (len(move_dirs), in_folder))
 
@@ -129,19 +135,19 @@ def move_or_delete_files(in_folder, out_folder, str_in):
 
 
 #################################################
-grib_folder = r'C:\Users\xrnogueira\Documents\Data\ERA5'
-grib_names = ['adaptor.mars.internal-1635286250.629378-14702-18-1f39c8bd-16fa-49d7-893b-9d5b664ae235.grib',
-              'adaptor.mars.internal-1635286519.6098378-21899-3-eeb1763a-3215-422b-b76d-1e5f57b5dcee.grib']
+netcdf = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi\by_month'
+cdf_files = os.listdir(netcdf)
+dems = r'C:\Users\xrnogueira\Documents\Data\3DEP'
 
-gribs = [grib_folder + '\\' + i for i in grib_names]
+# make a list of rasters
+inputs = [netcdf + '\\' + i for i in cdf_files]
 
 
 #################################################
 def main():
-    for i in gribs:
+    for i in inputs:
         print(i)
         convert_raster(i, out_folder='', out_form=['GTiff', '.tif'])
-
 
 if __name__ == "__main__":
     main()
