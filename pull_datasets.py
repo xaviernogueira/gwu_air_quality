@@ -40,46 +40,6 @@ def cmd(command):
 
     return
 
-
-def convert_raster(in_raster, out_folder='', out_form=['GTiff', '.tif']):
-    """
-    :param in_raster: An input raster that is not the same format as the out_form
-    :param out_folder: optional, allows output folder to be specified and created. Default is same folder as input.
-    :param out_form: A list storing the output format gdal name [0] and the extension [1]. default it GeoTIFF.
-    :return: path of created GeoTIFF file (or other format)
-    """
-    import osgeo
-    from osgeo import gdal
-
-    # Open existing dataset
-    in_file = gdal.Open(in_raster)
-
-    if out_folder == '':
-        out_folder = os.path.dirname(in_raster)
-
-    no_ext = os.path.splitext(os.path.basename(in_raster))[0]
-    out_dir = out_folder + '\\%s' % no_ext + out_form[1]
-
-    # Ensure number of bands in GeoTiff will be same as in GRIB file.
-    bands = []  # Set up array for gdal.Translate().
-    if in_file is not None:
-        band_num = in_file.RasterCount  # Get band count
-    for i in range(band_num + 1):  # Update array based on band count
-        if i == 0:  # gdal starts band counts at 1, not 0 like the Python for loop does.
-            pass
-        else:
-            bands.append(i)
-
-    # Output to new format using gdal.Translate. See https://gdal.org/python/ for osgeo.gdal.Translate options.
-    out_file = gdal.Translate(out_dir, in_file, format=out_form[0], bandList=bands)
-
-    # Properly close the datasets to flush to disk
-    in_file = None
-    out_file = None
-
-    return out_dir
-
-
 def move_or_delete_files(in_folder, out_folder, str_in):
     """
     Moves files from one folder to another by a string query
@@ -135,19 +95,6 @@ def move_or_delete_files(in_folder, out_folder, str_in):
 
 
 #################################################
-netcdf = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi\by_month'
-cdf_files = os.listdir(netcdf)
+
 dems = r'C:\Users\xrnogueira\Documents\Data\3DEP'
 
-# make a list of rasters
-inputs = [netcdf + '\\' + i for i in cdf_files]
-
-
-#################################################
-def main():
-    for i in inputs:
-        print(i)
-        convert_raster(i, out_folder='', out_form=['GTiff', '.tif'])
-
-if __name__ == "__main__":
-    main()

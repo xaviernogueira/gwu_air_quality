@@ -22,6 +22,7 @@ import iso3166
 DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi'
 LATLONG = DIR + '\\LatLonGrid.ncf'
 TROP_2019 = DIR + '\\Tropomi_NO2_griddedon0p01grid_2019_QA75.ncf'
+NO2_AND_LATLONG = DIR + '\\Tropomi_NO2_latlon_griddedon0.01grid_2019_QA75.ncf'
 IN_LIST = [LATLONG, TROP_2019]
 
 
@@ -179,10 +180,120 @@ def no2_plotting(no2_file, latlong_file, std=True, place='', state=False):
     plt.show()
 
 
-# run functions
-#ncf_metadata(IN_LIST[:-1])
-no2_plotting(TROP_2019, LATLONG, std=False, place='los angeles')
+def add_coors(no2_file, latlong_file):
+    """
+    Combines TROPOMI NetCDF with a lat/long NetCDF that can be converted to a GeoTIFF
+    :param no2_file: netCDF with arbitrary variables
+    :param latlong_file: netCDF with lat long variables
+    :return: new netCDF file with no2_file variables and lat long variables
+    """
+    # create a new netCDF
+    out_cdf_name = str(no2_file).replace('.ncf', '_latlon.ncf')
+    in_no2 = nc.Dataset(no2_file)
+    in_coors = nc.Dataset(latlong_file)
+    out_cdf = nc.Dataset(out_cdf_name, "w")
 
+    # copy no2 attributes and dimensions via dictionary
+    out_cdf.setncatts(in_no2.__dict__)
+    for name, dimension in in_no2.dimensions.items():
+        out_cdf.createDimension(name, (len(dimension) if not dimension.isunlimited() else None))
+
+    # copy all no2 data and lat long
+    for name, variable in in_no2.variables.items():
+        dims = variable.dimensions
+        out_cdf.createVariable(name, variable.datatype, dims)
+        out_cdf[name][:] = in_no2[name][:]
+
+        # copy variable attributes all at once via dictionary
+        out_cdf[name].setncatts(in_no2[name].__dict__)
+
+    # repeat for lat long netCDF
+    for name, variable in in_coors.variables.items():
+        out_cdf.createVariable(name, variable.datatype, variable.dimensions)
+        out_cdf[name][:] = in_coors[name][:]
+
+        # copy variable attributes all at once via dictionary
+        out_cdf[name].setncatts(in_coors[name].__dict__)
+
+    return out_cdf_name
+
+
+def convert_raster(in_raster, out_folder='', out_form=['GTiff', '.tif']):
+    """
+    :param in_raster: An input raster that is not the same format as the out_form
+    :param out_folder: optional, allows output folder to be specified and created. Default is same folder as input.
+    :param out_form: A list storing the output format gdal name [0] and the extension [1]. default it GeoTIFF.
+    :return: path of created GeoTIFF file (or other format)
+    """
+    import osgeo
+    from osgeo import gdal
+
+    # Open existing dataset
+    in_file = gdal.Open(in_raster)
+
+    if out_folder == '':
+        out_folder = os.path.dirname(in_raster)
+
+    no_ext = os.path.splitext(os.path.basename(in_raster))[0]
+    out_dir = out_folder + '\\%s' % no_ext + out_form[1]
+
+    # Ensure number of bands in GeoTiff will be same as in raster file.
+    bands = []  # Set up array for gdal.Translate().
+    if in_file is not None:
+        band_num = in_file.RasterCount  # Get band count
+    else:
+        return print('No bands detected')
+    for i in range(band_num + 1):  # Update array based on band count
+        if i == 0:  # gdal starts band counts at 1, not 0 like the Python for loop does.
+            pass
+        else:
+            bands.append(i)
+
+    # Output to new format using gdal.Translate. See https://gdal.org/python/ for osgeo.gdal.Translate options.
+    out_file = gdal.Translate(out_dir, in_file, format=out_form[0], bandList=bands)
+
+    # Properly close the datasets to flush to disk
+    in_file = None
+    out_file = None
+
+    return out_dir
+
+
+def extract_vals_from_cdf(stations_csv, cdf_dict, lat_long_file):
+    """
+    This function extracts values using array indexing from a netCDF file at specified lat/long points.
+    :param stations_csv: A list of station observations with a month column and lat/long values
+    :param cdf_dict: Holds all input netCDF files as values, the keys are month indexes
+    :param lat_long_file: netCDF with a variable LAT and LONG
+    :return: a csv containing 2019 TROPOMI values assocaited with each observation
+    """
+
+
+
+
+
+################################################################
+# run functions
+
+#no2_plotting(TROP_2019, LATLONG, std=False, place='los angeles')
+
+
+
+
+# make a list of rasters
+
+netcdf_months = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi\by_month'
+cdf_files = os.listdir(netcdf_months)
+inputs = [netcdf_months + '\\' + i for i in cdf_files]
+
+
+#################################################
+def main():
+    ncf_metadata(inputs)
+    #onvert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
+
+if __name__ == "__main__":
+    main()
 
 
 
