@@ -259,14 +259,68 @@ def convert_raster(in_raster, out_folder='', out_form=['GTiff', '.tif']):
     return out_dir
 
 
-def extract_vals_from_cdf(stations_csv, cdf_dict, lat_long_file):
+def extract_vals_from_cdf(stations_csv, monthly_dir, latlong_file, year=2019):
     """
     This function extracts values using array indexing from a netCDF file at specified lat/long points.
     :param stations_csv: A list of station observations with a month column and lat/long values
-    :param cdf_dict: Holds all input netCDF files as values, the keys are month indexes
+    :param monthly_dir: Folder holding monthly t netCDF files as values encoded like ..._092019_...ncf (for september)
     :param lat_long_file: netCDF with a variable LAT and LONG
+    :param year: year of netCDF files (2019 is default), used for path string slicing
     :return: a csv containing 2019 TROPOMI values assocaited with each observation
     """
+    # import stations data
+    import pandas as pd
+    in_df = pd.read_csv(stations_csv)
+
+    # list .ncf files in monthly_dir and build dictionary w/ month codes
+    in_list = os.listdir(monthly_dir)
+    in_list = [i for i in in_list if i[-3:] == 'ncf']
+
+    month_dict = {}
+    for m in list(range(1, 13)):
+        code = "{0:0=2d}".format(m)
+        temp_list = [i for i in in_list if '%s%s' % (code, year) in i]
+        if len(temp_list) == 1:
+            month_dict[m] = temp_list[0]
+        else:
+            print('WARNING: %s netCDF files with %s - %s code. See list below...' % (len(temp_list), code, year))
+            print(temp_list)
+            var = input('Select index (i.e., 0, 1,...) of the desired file for month %s' % code)
+            month_dict[m] = temp_list[int(var)]
+
+    # get lat, long and no2 values as arrays
+    in_coors = nc.Dataset(latlong_file)
+    longs = in_coors['LON'][:]
+    lats = in_coors['LAT'][:]
+
+    # define function to find nearest array values index
+    def find_nearest(array, value):
+        array = np.asarray(array)
+        index = (np.abs(array - value)).argmin()
+        value = array[index]
+        return index
+
+    # add the associated (month, location) TROPOMI values to a list, add the list as a column
+    tropomi_data = []
+
+    rows = in_df.shape[0]
+    for index, row in in_df.iterrows():
+        lat_ind = find_nearest(lats, float(row['lat']))
+        lon_ind = find_nearest(longs, float(row['long']))
+
+        # grab the ncf for the month and add NO2 values to list
+        tropi_dir = monthly_dir + '\\%s' % month_dict[int(row['month'])]
+        tropi_array = nc.Dataset(tropi_dir)['NO2'][:]
+        tropomi_data.append(tropi_array[lat_ind][lon_ind])
+
+        if index % 100 == 0:
+            percent = round((index / rows) * 100, 2)
+            print('%s percent finished...' % percent)
+
+    in_df['tropomi'] = np.array(tropomi_data)
+    in_df.to_csv(stations_csv.replace('.csv', '_wtropomi.csv'))
+    return print(tropomi_data)
+
 
 
 
@@ -283,15 +337,17 @@ def extract_vals_from_cdf(stations_csv, cdf_dict, lat_long_file):
 # make a list of rasters
 
 netcdf_months = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi\by_month'
+no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
 cdf_files = os.listdir(netcdf_months)
 inputs = [netcdf_months + '\\' + i for i in cdf_files]
 
 
 #################################################
 def main():
-    ncf_metadata(inputs)
+    #ncf_metadata(inputs)
     #onvert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
-
+    extract_vals_from_cdf(no2_stations_daily, netcdf_months, LATLONG, year=2019)
+    print()
 if __name__ == "__main__":
     main()
 
