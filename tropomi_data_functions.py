@@ -324,13 +324,10 @@ def extract_vals_from_cdf(stations_csv, monthly_dir, latlong_file, year=2019):
 
 
 
-
-
 ################################################################
 # run functions
 
 #no2_plotting(TROP_2019, LATLONG, std=False, place='los angeles')
-
 
 
 
