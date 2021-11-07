@@ -67,7 +67,16 @@ def netcdf_to_tiff(in_folder, out_folder=''):
     in_files = [in_folder + '\\%s' % i for i in all_files if i[-3:] == 'ncf']
 
 
+def extract_vals_from_tiff(stations_points, monthly_dir):
+    """
+    This function is used to sample NO2 station points from monthly TIFs (simular to netCDF function but less intensive)
+    :return:
+    """
+    return
+
 ###################################################################
 dem_folder = r'C:\Users\xrnogueira\Documents\Data\3DEP'
-out_folder = r'C:\Users\xrnogueira\Documents\Data\resampled_3DEP'
-batch_resample(in_folder=dem_folder, cell_size=0.001, out_folder=out_folder, str_in='.tif')
+pop_den = r'C:\Users\xrnogueira\Documents\Data\Population_density'
+
+out_folder = r'C:\Users\xrnogueira\Documents\Data\resampled_popden'
+batch_resample(in_folder=pop_den, cell_size=0.001, out_folder=out_folder, str_in='.tif')

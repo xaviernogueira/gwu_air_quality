@@ -40,6 +40,7 @@ def cmd(command):
 
     return
 
+
 def move_or_delete_files(in_folder, out_folder, str_in):
     """
     Moves files from one folder to another by a string query

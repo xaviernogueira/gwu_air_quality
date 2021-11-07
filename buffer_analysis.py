@@ -8,6 +8,18 @@ import matplotlib.pyplot as plt
 import arcpy.analysis
 import arcpy.da
 import pandas as pd
+import logging
+
+
+def init_logger(filename):
+    """Initializes logger w/ same name as python file"""
+
+    logging.basicConfig(filename=os.path.basename(filename).replace('.py', '.log'), filemode='w', level=logging.INFO)
+    stderr_logger = logging.StreamHandler()
+    stderr_logger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+    logging.getLogger().addHandler(stderr_logger)
+
+    return
 
 
 def tableToCSV(input_table, csv_filepath, fld_to_remove_override=None, keep_fields=None):
@@ -18,7 +30,7 @@ def tableToCSV(input_table, csv_filepath, fld_to_remove_override=None, keep_fiel
         keep_fields = []
 
     if fld_to_remove_override is None:
-        fld_to_remove_override = ['OBJECTID', 'SHAPE']
+        fld_to_remove_override = [] # 'OBJECTID', 'SHAPE'
 
     fld_list = arcpy.ListFields(input_table)
     fld_names = [str(fld.name) for fld in fld_list]
@@ -40,25 +52,30 @@ def tableToCSV(input_table, csv_filepath, fld_to_remove_override=None, keep_fiel
         with arcpy.da.SearchCursor(input_table, fld_names) as cursor:
             for row in cursor:
                 writer.writerow(row)
-        print(csv_filepath + " CREATED")
     csv_file.close()
 
     return csv_filepath
 
 
-def make_vars_dict(var_names, gis_file, methods):
-    """Converts a list of variable names, raster addresses, and buffer methods into a dictionary"""
+def make_vars_dict(var_names, gis_files, methods):
+    """
+    Converts a list of variable names, raster addresses, and buffer methods into a dictionary"
+    :param var_names: list of length N of names for variables
+    :param gis_files: list storing N GIS files associated with each variable name
+    :param methods: list storing N method codes for each variable (either: length_sum or zonal_sum)
+    :return: a dictionary with each variable name as keys holding a list w/ gis file as [0], and method code as [2]
+    """
 
     # test for equal list lengths
-    if len(var_names) != len(gis_file) or len(gis_file) != len(methods):
+    if len(var_names) != len(gis_files) or len(gis_files) != len(methods):
         return print('Input list lengths are not the same')
 
     # make dictionary
     vars_dict = {}
 
-    for i, var in var_names:
+    for i, var in enumerate(var_names):
         vars_dict[var] = []
-        vars_dict[var].append(gis_file[i])
+        vars_dict[var].append(gis_files[i])
         vars_dict[var].append(methods[i])
 
     return vars_dict
@@ -81,13 +98,16 @@ def buffer_iters(points, max, step):
 
     for d in buff_dists:
         out_name = temp_files + '\\points_buffer_%sm.shp' % d
-        arcpy.analysis.Buffer(points, out_name, buffer_distance_or_field='%s Meters' % d)
+        try:
+            arcpy.analysis.Buffer(points, out_name, buffer_distance_or_field='%s Meters' % d)
+        except:
+            print(out_name + ' has been already made')
         buff_dict[d] = out_name
 
     return buff_dict
 
 
-def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=[]):
+def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=None):
     """
     This functions applies all buffer intervals to all variable in the var_dict according to specified method.
     This outputs a copy of var_dict but with a list w/ R^2 values appended to each variables sub_list.
@@ -101,74 +121,97 @@ def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=[]):
     :return: A list containing vars_dict[0] but with a dataframe data columns as the [2] item. List of buffer dists [1].
     """
     # create folder for exta files and list to store their paths
+    if fit_vars is None:
+        fit_vars = []
+
+    arcpy.env.overwriteOutput = True
+    init_logger(__file__)
     del_files = []
     temp_files = os.path.dirname(no2_csv) + '\\temp_files'
     if not os.path.exists(temp_files):
         os.makedirs(temp_files)
 
+    # pull in annual averaged no2 csv
+    no2_df = pd.read_csv(no2_csv)
+    no2_df.sort_values(by=['station_id'], inplace=True)
+
     # iterate over buffer variables stored in the dictionary
     buffer_distances = list(buff_dict.keys())
-    for var in list(vars_dict.keys()):
+    for key in list(vars_dict.keys()):
+        var = vars_dict[key]
         data = var[0]
         method = var[1]
 
-        # pull in annual averaged no2 csv
-        no2_df = pd.read_csv(no2_csv)
-        no2_df.sort_values(by=['station_id'], inplace=True)
+        # make a data frame for each variable storing values for each buffer
+        var_df = no2_df.copy()
 
         for dist in buffer_distances:
-            col_head = '%s_%s' % (var, dist)
+            col_head = '%s_%s' % (key, dist)
             buffer = buff_dict[dist]
 
             # if a line shapefile, calculate length
-            if method == 'length_sum':
-                inter_loc = temp_files + '\\inter_%s.shp' % dist
-                dissolved = inter_loc.replace('inter', 'dissolve')
-                d_table = temp_files + '\\lengths_%s.csv' % dist
+            try:
+                if method == 'length_sum':
+                    inter_loc = temp_files + '\\inter_%s.shp' % dist
+                    dissolved = inter_loc.replace('inter', 'dissolve')
+                    pr = arcpy.SpatialReference('NAD 1983 Contiguous USA Albers')
+                    dissolved_p = dissolved.replace('.shp', '_p.shp')
+                    d_table = temp_files + '\\lengths_%s.csv' % dist
 
-                arcpy.Intersect_analysis([buffer, data], inter_loc, output_type='LINE')
-                arcpy.Dissolve_management(inter_loc, dissolved, dissolve_field=['station_id'])
-                tableToCSV(dissolved, d_table)
-                t_df = pd.read_csv(d_table)
-                t_df.sort_values(by=['station_id'], inplace=True)
-                no2_df[col_head] = t_df['Shape_Length'].to_numpy()
+                    arcpy.Intersect_analysis([buffer, data], inter_loc, output_type='LINE')
+                    arcpy.Dissolve_management(inter_loc, dissolved, dissolve_field=['station_id'])
+                    arcpy.Project_management(dissolved, dissolved_p, out_coor_system=pr,
+                                             transform_method='WGS_1984_(ITRF00)_To_NAD_1983')
+                    arcpy.AddGeometryAttributes_management(dissolved_p, 'LENGTH', Length_Unit='KILOMETERS')
+                    tableToCSV(dissolved_p, d_table)
+                    t_df = pd.read_csv(d_table)
+                    t_df.sort_values(by=['station_id'], inplace=True)
+                    t_df.rename(columns={'LENGTH': col_head}, inplace=True)
 
-                # gather files for deletion
-                del_files.append(inter_loc)
-                del_files.append(d_table)
+                    # gather files for deletion
+                    del_files.append(inter_loc)
+                    del_files.append(d_table)
 
-            # if a raster file, calculate zonal sum
-            elif method == 'zonal_sum':
-                temp_table = temp_files + '\\zonal_%s.dbf' % dist
-                d_table = temp_files + '\\sums_%s.csv' % dist
+                # if a raster file, calculate zonal sum
+                elif method == 'zonal_sum':
+                    # MAKE SURE THIS PART WORKS TOO ONCE WE HAVE FB DATA READY
+                    temp_table = temp_files + '\\zonal_%s.dbf' % dist
+                    d_table = temp_files + '\\sums_%s.csv' % dist
 
-                arcpy.sa.ZonalStatisticsAsTable(buffer, "station_id", data, out_table=temp_table, statistics_type="SUM")
-                tableToCSV(temp_table, d_table)
-                t_df = pd.read_csv(d_table)
-                t_df.sort_values(by=['station_id'], inplace=True)
-                no2_df[col_head] = t_df['SUM'].to_numpy()
+                    arcpy.sa.ZonalStatisticsAsTable(buffer, "station_id", data, out_table=temp_table, statistics_type="SUM")
+                    tableToCSV(temp_table, d_table)
+                    t_df = pd.read_csv(d_table)
+                    t_df.rename(columns={'SUM': col_head}, inplace=True)
 
-                # gather files for deletion
-                del_files.append(temp_table)
-                del_files.append(d_table)
+                    # gather files for deletion
+                    del_files.append(temp_table)
+                    del_files.append(d_table)
 
-            else:
-                print('Method %s is not valid, choose from [length_sum, zonal_sum]' % method)
+                else:
+                    print('Method %s is not valid, choose from [length_sum, zonal_sum]' % method)
+                    return
+
+                t_df = t_df[['station_id', col_head]]
+                var_df = var_df.merge(t_df, on='station_id', how='left')
+                var_df[col_head] = var_df[col_head].fillna(0)
+
+            except arcpy.ExecuteError:
+                logging.info(str(arcpy.GetMessages()))
 
         # add the no2 table with the pulled values to the variable dictionary
-        var.append(no2_df)
+        vars_dict[key].append(var_df)
 
     # delete extra files
     for file in del_files:
         try:
-            arcpy.management.Delete(file)
-        except:
-            print('Could not delete %s' % file)
+            arcpy.Delete_management(file)
+        except arcpy.ExecuteError:
+                logging.info('Could not delete %s' % file)
 
     return vars_dict, buffer_distances
 
 
-def plot_decay_curves(vars_dict, buffer_distances, input_vars=None, input_buffs=None):
+def plot_decay_curves(vars_dict, buffer_distances, out_dir, input_vars=None, input_buffs=None):
     """"""
     if input_buffs is None:
         input_buffs = []
@@ -182,14 +225,15 @@ def plot_decay_curves(vars_dict, buffer_distances, input_vars=None, input_buffs=
 
     coors_coefs = []
     legend_labels = []
-    for var in list(vars_dict.keys()):
+    for key in list(vars_dict.keys()):
+        var = vars_dict[key]
         sub_list = []
         methods = var[1]
         no2_df = var[2]
-        legend_labels.append('%s_%s' % (var, methods))
+        legend_labels.append('%s_%s' % (key, methods))
 
         for dist in buffer_distances:
-            col_head = '%s_%s' % (var, dist)
+            col_head = '%s_%s' % (key, dist)
             no2 = no2_df['mean_no2']
             values = no2_df[col_head]
             coef = np.corrcoef(no2, values)
@@ -216,8 +260,31 @@ def plot_decay_curves(vars_dict, buffer_distances, input_vars=None, input_buffs=
     plt.minorticks_on()
     plt.xticks(fontsize='x-small')
     plt.yticks(fontsize='x-small')
+    plt.legend()
 
     plt.show()
+    plt.gcf()
+    out_png = out_dir + '\\buffer_decay_curves.png'
+    plt.savefig(out_png, dpi=300, bbox_inches='tight')
+    plt.cla()
 
 
+#  ------------- INPUTS ------------------
+ROADS_DIR = r'C:\Users\xrnogueira\Documents\Data\Road data'
+NO2_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
+POINTS = NO2_DIR + '\\no2_annual_2019_points.shp'
+NO2_CSV = NO2_DIR + '\\no2_annual_2019.csv'
+var_names = ['p_roads', 's_roads']
+gis_files = [ROADS_DIR + '\\primary_roads.shp', ROADS_DIR + '\\non_primary_roads.shp']
+methods = ['length_sum', 'length_sum']
 
+
+def main():
+    vars_dict = make_vars_dict(var_names, gis_files, methods)
+    buff_dict = buffer_iters(POINTS, 3100, 100)
+    out = buffer_regression(vars_dict, buff_dict, NO2_CSV, fit_vars=None)
+    plot_decay_curves(out[0], out[1], out_dir=NO2_DIR, input_vars=None, input_buffs=None)
+
+
+if __name__ == "__main__":
+    main()
