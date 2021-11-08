@@ -1,6 +1,4 @@
-INFO:root:Aggregated population_usa18_-100_2019-07-01.tif
-INFO:root:Aggregated population_usa18_-110_2019-07-01.tif
-INFO:root:Aggregated population_usa18_-160_2019-07-01.tif
-INFO:root:Aggregated population_usa18_-170_2019-07-01.tif
-INFO:root:Aggregated population_usa18_-180_2019-07-01.tif
-INFO:root:Aggregated population_usa18_-90_2019-07-01.tif
+INFO:root:Projected agg0.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg0_p.tif
+INFO:root:Projected agg1.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg1_p.tif
+INFO:root:Projected agg10.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg10_p.tif
+INFO:root:Projected agg11.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg11_p.tif
