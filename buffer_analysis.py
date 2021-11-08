@@ -263,9 +263,6 @@ def plot_decay_curves(vars_dict, buffer_distances, out_dir, input_vars=None, inp
     plt.legend()
 
     plt.show()
-    plt.gcf()
-    out_png = out_dir + '\\buffer_decay_curves.png'
-    plt.savefig(out_png, dpi=300, bbox_inches='tight')
     plt.cla()
 
 
