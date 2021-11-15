@@ -219,6 +219,11 @@ def netcdf_to_tiff(ncf, tifname='', out_folder=''):
     return out_dict
 
 
+def make_averaged_CRU_rasters(in_folder, variable='q_air'):
+
+    return
+
+
 def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
     """
     This function makes a multi-band sample of a batch of ERA5 data (i.e., using nearest raster cells), and
@@ -262,8 +267,19 @@ def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
         val_list = []
         prev_id = 9999999999  # facilities faster processing
         sub_df = ''  # placeholder
-        col_heads = samp_df.columns
+
         samp_df.rename(columns= {'era5_sp_Ba': 'era5_sp_12'}, inplace=True)
+
+        # build month codes for column header identification
+        months = []
+        for m in list(range(1, 13)):
+            if m <= 9:
+                month_h = '_%s' % m
+
+            else:
+                month_h = m
+
+            months.append(month_h)
 
         # iterate over all observation rows and pull values
         for j, row in enumerate(in_df.iterrows()):
@@ -276,22 +292,37 @@ def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
                 sub_df = samp_df.loc[lambda samp_df: samp_df[samp_id] == id]
                 prev_id = id
 
+            # identify the extra column header (see arcpy sample error description)
+            col_heads = [i for i in sub_df.columns if 'era5' in i]
+
+            extra = []
+            normal = []
+            if len(col_heads) == 12:
+                present = False
+                for m_label in months:
+                    for head in col_heads:
+                        if '_%s' % m_label in head:
+                            normal.append(head)
+                extra = [i for i in col_heads if i not in normal]
+
             # extract value for the appropriate month and add to list
             month = int(rowd['month'])
-            if month <= 9:
-                month_h = '_%s' % month
-            else:
-                month_h = month
+            month_h = months[month - 1]
 
             col_head = [i for i in col_heads if '_%s' % month_h in i]
-            col_head = [i for i in col_head if not 'Band' in i]
 
             if len(col_head) == 1:
                 val = sub_df[[col_head[0]]].to_numpy()[0]
                 val_list.append(val)
 
+            # to fix the strange arcpy sampling issue where band 12 (last band) is not get labeled correctly
+            elif len(col_head) == 0:
+                new_head = extra[0]
+                val = sub_df[[new_head]].to_numpy()[0]
+                val_list.append(val)
+
             else:
-                return logging.info('ERROR: Multiple Band_# columns for each month')
+                return logging.info('ERROR: Multiple Band columns for each month')
 
         in_df[var] = np.array(val_list)
 
@@ -299,24 +330,39 @@ def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
 
     return out_table
 
+
 ###################################################################
-dem_folder = r'C:\Users\xrnogueira\Documents\Data\3DEP'
-pop_den = r'C:\Users\xrnogueira\Documents\Data\Population_density'
-dem_for_ref = dem_folder + '\\USGS_1_n25w082.tif'
-resampled_pop = r'C:\Users\xrnogueira\Documents\Data\resampled_popden'
-era5_ncf = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
-era5_dict = {'sp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_sp.tif', 'swvl1': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_swvl1.tif', 't2m': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_t2m.tif', 'tp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_tp.tif', 'u10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_u10.tif', 'v10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_v10.tif'}
+from tropomi_data_functions import ncf_metadata
+
+raster_funcs = False # batch raster resample/aggreagte and project
+if raster_funcs:
+    dem_folder = r'C:\Users\xrnogueira\Documents\Data\3DEP'
+    pop_den = r'C:\Users\xrnogueira\Documents\Data\Population_density'
+    dem_for_ref = dem_folder + '\\USGS_1_n25w082.tif'
+    resampled_pop = r'C:\Users\xrnogueira\Documents\Data\resampled_popden'
+    # batch_resample_or_aggregate(in_folder=pop_den, cell_size=0.001, out_folder=resampled_pop, str_in='.tif', agg=True)
+    # atch_raster_project(resampled_pop,  spatial_ref=dem_for_ref, out_folder='', suffix='_p.tif')
 
 
-#batch_resample_or_aggregate(in_folder=pop_den, cell_size=0.001, out_folder=resampled_pop, str_in='.tif', agg=True)
-#batch_raster_project(resampled_pop,  spatial_ref=dem_for_ref, out_folder='', suffix='_p.tif')
+era5_extract = False  # run era5 extraction
+if era5_extract:
+    no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
+    DIR = os.path.dirname(no2_stations_daily)
+    era5_ncf = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
+    # era5_dict = {'sp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_sp.tif', 'swvl1': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_swvl1.tif', 't2m': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_t2m.tif', 'tp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_tp.tif', 'u10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_u10.tif', 'v10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_v10.tif'}
+    sample_points = DIR + '\\no2_annual_2019_points_era5_aligned.shp'
+    era5_obs_table = DIR + '\\no2_obs_wERA5.csv'
+    era5_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
+    era5_sample_to_csv(no2_stations_daily, tiff_dict=era5_dict, sample_points=sample_points, out_table=era5_obs_table)
 
-# run era5 extraction
-no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
-DIR = os.path.dirname(no2_stations_daily)
-sample_points = DIR + '\\no2_annual_2019_points_era5_aligned.shp'
-era5_obs_table = DIR + '\\no2_obs_wERA5.csv'
-#era5_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
+cru_extract = False  # run CRU extraction
+if cru_extract:
+    actual_sample_points = DIR + '\\no2_annual_2019_points.shp'
+    cru_obs_table = DIR + '\\no2_obs_wCRU.csv'
+    # cru_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
+    # era5_sample_to_csv(no2_stations_daily, tiff_dict=cru_dict, sample_points=sample_points, out_table=cru_obs_table)
 
-era5_sample_to_csv(no2_stations_daily, tiff_dict=era5_dict, sample_points=sample_points, out_table=era5_obs_table)
-
+era_sl_extract = False  # run era5-sl extraction
+if era_sl_extract:
+    era_sl = r'C:\Users\xrnogueira\Documents\Data\ERA5\ERA5_SL\adaptor.mars.internal-1637015018.6141229-26853-13-ea530db3-0cdd-459e-b83c-f3d0540479c1.nc'
+    ncf_metadata(era_sl)

@@ -11,12 +11,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 import netCDF4 as nc
-from sklearn.preprocessing import StandardScaler
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-from cartopy.io import shapereader
-import requests
-import iso3166
+
+
 
 # inputs for running locally
 DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi'
@@ -100,6 +96,8 @@ def get_boundingbox(place, output_as='boundingbox', state_override=False):
     Returns:
     output - a list with coordinates as floats i.e., [[11.777, 53.7253321, -70.2695876, 7.2274985]]
     """
+    import requests
+    import iso3166
     # create url to pull openstreetmap data
     url_prefix = 'http://nominatim.openstreetmap.org/search?country='
 
@@ -142,6 +140,10 @@ def no2_plotting(no2_file, latlong_file, std=True, place='', state=False):
      ----------
      Returns: an no2 concentration colormap plot w/ the selected extent
     """
+    from sklearn.preprocessing import StandardScaler
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    from cartopy.io import shapereader
     # bring in data
     no2_ncf = nc.Dataset(no2_file)
     no2_raw = no2_ncf.variables['NO2'][:]
