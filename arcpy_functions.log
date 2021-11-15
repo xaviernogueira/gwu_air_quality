@@ -1,4 +1,4 @@
-INFO:root:Projected agg0.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg0_p.tif
-INFO:root:Projected agg1.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg1_p.tif
-INFO:root:Projected agg10.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg10_p.tif
-INFO:root:Projected agg11.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg11_p.tif
+INFO:root:Sampling from ERA5 monthly level data...
+INFO:root:Extracting values from variable: sp
+INFO:numexpr.utils:NumExpr defaulting to 4 threads.
+INFO:root:ERROR: Multiple Band_# columns for each month

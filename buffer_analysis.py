@@ -107,7 +107,7 @@ def buffer_iters(points, max, step):
     return buff_dict
 
 
-def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=None):
+def buffer_regression(vars_dict, buff_dict, no2_csv):
     """
     This functions applies all buffer intervals to all variable in the var_dict according to specified method.
     This outputs a copy of var_dict but with a list w/ R^2 values appended to each variables sub_list.
@@ -118,16 +118,15 @@ def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=None):
     :param no2_csv: A csv file containing annual averaged NO2 w/ station IDs matching the point file.
     :param fit_vars: (optional) A list containing variable names that will be used to fit a regression model. If used,
     the out
+    :param chosen_buffs: a list w/ equal length as vars_dict.keys() that picks buffers, and saves the resulting csv
     :return: A list containing vars_dict[0] but with a dataframe data columns as the [2] item. List of buffer dists [1].
     """
-    # create folder for exta files and list to store their paths
-    if fit_vars is None:
-        fit_vars = []
 
     arcpy.env.overwriteOutput = True
     init_logger(__file__)
     del_files = []
-    temp_files = os.path.dirname(no2_csv) + '\\temp_files'
+    dir = os.path.dirname(no2_csv)
+    temp_files = dir + '\\temp_files'
     if not os.path.exists(temp_files):
         os.makedirs(temp_files)
 
@@ -135,9 +134,11 @@ def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=None):
     no2_df = pd.read_csv(no2_csv)
     no2_df.sort_values(by=['station_id'], inplace=True)
 
-    # iterate over buffer variables stored in the dictionary
+    # iterate over buffer variables stored in the dictionary or use chosen buffer distances
+    vars_keys = list(vars_dict.keys())
     buffer_distances = list(buff_dict.keys())
-    for key in list(vars_dict.keys()):
+
+    for key in vars_keys:
         var = vars_dict[key]
         data = var[0]
         method = var[1]
@@ -200,6 +201,7 @@ def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=None):
 
         # add the no2 table with the pulled values to the variable dictionary
         vars_dict[key].append(var_df)
+        var_df.to_csv(dir + '\\no2_with_%s_buffs.csv' % key)
 
     # delete extra files
     for file in del_files:
@@ -211,7 +213,7 @@ def buffer_regression(vars_dict, buff_dict, no2_csv, fit_vars=None):
     return vars_dict, buffer_distances
 
 
-def plot_decay_curves(vars_dict, buffer_distances, out_dir, input_vars=None, input_buffs=None):
+def plot_decay_curves(vars_dict, buffer_distances, input_vars=None, input_buffs=None):
     """"""
     if input_buffs is None:
         input_buffs = []
@@ -279,8 +281,8 @@ methods = ['length_sum', 'length_sum']
 def main():
     vars_dict = make_vars_dict(var_names, gis_files, methods)
     buff_dict = buffer_iters(POINTS, 3100, 100)
-    out = buffer_regression(vars_dict, buff_dict, NO2_CSV, fit_vars=None)
-    plot_decay_curves(out[0], out[1], out_dir=NO2_DIR, input_vars=None, input_buffs=None)
+    out = buffer_regression(vars_dict, buff_dict, NO2_CSV)
+    plot_decay_curves(out[0], out[1], input_vars=None, input_buffs=None)
 
 
 if __name__ == "__main__":

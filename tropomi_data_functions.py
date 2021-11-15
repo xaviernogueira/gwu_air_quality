@@ -23,6 +23,7 @@ DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi'
 LATLONG = DIR + '\\LatLonGrid.ncf'
 TROP_2019 = DIR + '\\Tropomi_NO2_griddedon0p01grid_2019_QA75.ncf'
 NO2_AND_LATLONG = DIR + '\\Tropomi_NO2_latlon_griddedon0.01grid_2019_QA75.ncf'
+ERA5 = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
 IN_LIST = [LATLONG, TROP_2019]
 
 
@@ -341,10 +342,10 @@ inputs = [netcdf_months + '\\' + i for i in cdf_files]
 
 #################################################
 def main():
-    #ncf_metadata(inputs)
-    #onvert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
-    extract_vals_from_cdf(no2_stations_daily, netcdf_months, LATLONG, year=2019)
-    print()
+    ncf_metadata(ERA5)
+    #convert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
+    #extract_vals_from_cdf(no2_stations_daily, netcdf_months, LATLONG, year=2019)
+
 if __name__ == "__main__":
     main()
 
