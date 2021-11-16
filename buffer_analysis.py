@@ -268,22 +268,67 @@ def plot_decay_curves(vars_dict, buffer_distances, input_vars=None, input_buffs=
     plt.cla()
 
 
+def add_buffer_data_to_no2(no2_csv, buff_folder, var_dict, out_csv=''):
+    """
+    Joins selected buffer distance data to the full no2 observation data set by using station_id
+    :param no2_csv: full no2 observations dataset w/ station_id column
+    :param buff_folder: folder containing all buffer distance .csv files used for decay curve plotting
+    :param var_dict: a dictionary with variable name keys (str) that are in the .csv file names used for decay curve
+    plots, with corresponding list items containing chosen int buffer distances (i.e., var_dict[p_roads] = [1000, 1550])
+    :param out_csv: specifies output .csv file name (optional, default is out_csv=no2_csv.replace(.csv, _buff.csv))
+    :return: new no2 observations csv
+    """
+    # set up input data and directories
+    no2_df = pd.read_csv(no2_csv)
+    files = os.listdir(buff_folder)
+
+    if out_csv == '':
+        out_csv = no2_csv.replace('.csv', '_buff.csv')
+    else:
+        out_csv = out_csv
+
+    # join buffer distance values by station_id to the input no2 observation data
+    vars = list(var_dict.keys())
+    for var in vars:
+        print('Joining variable: %s...' % var)
+        # find the appropriate buffer decay curve .csv files
+        p_csvs = [i for i in files if var in i]
+        if len(p_csvs) == 1:
+            b_df = pd.read_csv(buff_folder + '\\%s' % p_csvs[0])
+        else:
+            return print('ERROR: Multiple .csv files %s have %s in their name. Please leave only one.' % (p_csvs, var))
+
+        # create column headers matching the variable and desired buffer distance
+        distances = var_dict[var]
+        heads = []
+        for d in distances:
+            head = '%s_%s' % (var, d)
+
+            sub_df = b_df[['station_id', head]]
+            no2_df = no2_df.merge(sub_df, on='station_id', how='left')
+            no2_df[head] = no2_df[head].fillna(0)
+        print('Done')
+
+    no2_df.to_csv(out_csv)
+    return out_csv
+
 #  ------------- INPUTS ------------------
 ROADS_DIR = r'C:\Users\xrnogueira\Documents\Data\Road data'
 NO2_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
 POINTS = NO2_DIR + '\\no2_annual_2019_points.shp'
 NO2_CSV = NO2_DIR + '\\no2_annual_2019.csv'
+NO2_DAILY = NO2_DIR + '\\clean_no2_daily_2019.csv'
 var_names = ['p_roads', 's_roads']
 gis_files = [ROADS_DIR + '\\primary_roads.shp', ROADS_DIR + '\\non_primary_roads.shp']
 methods = ['length_sum', 'length_sum']
-
+var_dict = {'p_roads': [1000], 's_roads': [1700, 3000]}
 
 def main():
-    vars_dict = make_vars_dict(var_names, gis_files, methods)
-    buff_dict = buffer_iters(POINTS, 3100, 100)
-    out = buffer_regression(vars_dict, buff_dict, NO2_CSV)
-    plot_decay_curves(out[0], out[1], input_vars=None, input_buffs=None)
-
+    #vars_dict = make_vars_dict(var_names, gis_files, methods)
+    #buff_dict = buffer_iters(POINTS, 3100, 100)
+    #out = buffer_regression(vars_dict, buff_dict, NO2_CSV)
+    #plot_decay_curves(out[0], out[1], input_vars=None, input_buffs=None)
+    add_buffer_data_to_no2(NO2_DAILY, NO2_DIR, var_dict, out_csv='')
 
 if __name__ == "__main__":
     main()

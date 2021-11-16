@@ -1,8 +1,5 @@
 INFO:root:Sampling from ERA5 monthly level data...
-INFO:root:Extracting values from variable: sp
+INFO:root:Extracting values from variable: blh
 INFO:numexpr.utils:NumExpr defaulting to 4 threads.
-INFO:root:Extracting values from variable: swvl1
-INFO:root:Extracting values from variable: t2m
-INFO:root:Extracting values from variable: tp
-INFO:root:Extracting values from variable: u10
-INFO:root:Extracting values from variable: v10
+INFO:root:Extracting values from variable: u100
+INFO:root:Extracting values from variable: v100

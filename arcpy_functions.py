@@ -333,6 +333,10 @@ def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
 
 ###################################################################
 from tropomi_data_functions import ncf_metadata
+no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
+DIR = os.path.dirname(no2_stations_daily)
+actual_sample_points = DIR + '\\no2_annual_2019_points.shp'
+era5_aligned_points = DIR + '\\no2_annual_2019_points_era5_aligned.shp'
 
 raster_funcs = False # batch raster resample/aggreagte and project
 if raster_funcs:
@@ -344,25 +348,24 @@ if raster_funcs:
     # atch_raster_project(resampled_pop,  spatial_ref=dem_for_ref, out_folder='', suffix='_p.tif')
 
 
-era5_extract = False  # run era5 extraction
+era5_extract = False  # run era5 extraction, must use aligned era5 points
 if era5_extract:
-    no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
-    DIR = os.path.dirname(no2_stations_daily)
     era5_ncf = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
     # era5_dict = {'sp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_sp.tif', 'swvl1': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_swvl1.tif', 't2m': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_t2m.tif', 'tp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_tp.tif', 'u10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_u10.tif', 'v10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_v10.tif'}
-    sample_points = DIR + '\\no2_annual_2019_points_era5_aligned.shp'
     era5_obs_table = DIR + '\\no2_obs_wERA5.csv'
     era5_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
-    era5_sample_to_csv(no2_stations_daily, tiff_dict=era5_dict, sample_points=sample_points, out_table=era5_obs_table)
+    era5_sample_to_csv(no2_stations_daily, tiff_dict=era5_dict, sample_points=era5_aligned_points, out_table=era5_obs_table)
 
-cru_extract = False  # run CRU extraction
+cru_extract = False  # run CRU extraction, we can use real points
 if cru_extract:
-    actual_sample_points = DIR + '\\no2_annual_2019_points.shp'
     cru_obs_table = DIR + '\\no2_obs_wCRU.csv'
     # cru_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
-    # era5_sample_to_csv(no2_stations_daily, tiff_dict=cru_dict, sample_points=sample_points, out_table=cru_obs_table)
+    # era5_sample_to_csv(no2_stations_daily, tiff_dict=cru_dict, sample_points=actual_sample_points, out_table=cru_obs_table)
 
-era_sl_extract = False  # run era5-sl extraction
+era_sl_extract = True  # run era5-sl extraction, we can use real points
 if era_sl_extract:
     era_sl = r'C:\Users\xrnogueira\Documents\Data\ERA5\ERA5_SL\adaptor.mars.internal-1637015018.6141229-26853-13-ea530db3-0cdd-459e-b83c-f3d0540479c1.nc'
-    ncf_metadata(era_sl)
+    era5_sl_obs_table = DIR + '\\no2_obs_wERA5_SL.csv'
+    #netcdf_to_tiff(era_sl, tifname='era5_SL', out_folder='')
+    era5_sl_dict = {'blh': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_blh.tif', 'u100': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_u100.tif', 'v100': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_v100.tif'}
+    era5_sample_to_csv(no2_stations_daily, era5_sl_dict, sample_points=actual_sample_points, out_table=era5_sl_obs_table)
