@@ -122,8 +122,15 @@ def buffer_regression(vars_dict, buff_dict, no2_csv):
     :return: A list containing vars_dict[0] but with a dataframe data columns as the [2] item. List of buffer dists [1].
     """
 
+    # initiate logger and arcpy environment settings
     arcpy.env.overwriteOutput = True
     init_logger(__file__)
+
+    if arcpy.CheckExtension('Spatial') == 'Available':
+            arcpy.CheckOutExtension('Spatial')
+    else:
+        return logging.error('ERROR: Cant check out spatial liscence')
+
     del_files = []
     dir = os.path.dirname(no2_csv)
     temp_files = dir + '\\temp_files'
@@ -149,6 +156,7 @@ def buffer_regression(vars_dict, buff_dict, no2_csv):
         for dist in buffer_distances:
             col_head = '%s_%s' % (key, dist)
             buffer = buff_dict[dist]
+            logging.info('Pulling values for %s meter buffer' % dist)
 
             # if a line shapefile, calculate length
             try:
@@ -310,25 +318,32 @@ def add_buffer_data_to_no2(no2_csv, buff_folder, var_dict, out_csv=''):
         print('Done')
 
     no2_df.to_csv(out_csv)
+    print('Output .csv: %s' % out_csv)
     return out_csv
+
 
 #  ------------- INPUTS ------------------
 ROADS_DIR = r'C:\Users\xrnogueira\Documents\Data\Road data'
+POP_DEN = r'C:\Users\xrnogueira\Documents\Data\usa_rasters_0p001\popden.tif'
 NO2_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
 POINTS = NO2_DIR + '\\no2_annual_2019_points.shp'
 NO2_CSV = NO2_DIR + '\\no2_annual_2019.csv'
 NO2_DAILY = NO2_DIR + '\\clean_no2_daily_2019.csv'
-var_names = ['p_roads', 's_roads']
-gis_files = [ROADS_DIR + '\\primary_roads.shp', ROADS_DIR + '\\non_primary_roads.shp']
-methods = ['length_sum', 'length_sum']
-var_dict = {'p_roads': [1000], 's_roads': [1700, 3000]}
+
+# set up inputs for buffer analysis functions
+var_names = ['pod_den']
+gis_files = [POP_DEN]
+methods = ['zonal_sum']
+dist_dict = {'pod_den': [1100]}
+
 
 def main():
     #vars_dict = make_vars_dict(var_names, gis_files, methods)
     #buff_dict = buffer_iters(POINTS, 3100, 100)
     #out = buffer_regression(vars_dict, buff_dict, NO2_CSV)
     #plot_decay_curves(out[0], out[1], input_vars=None, input_buffs=None)
-    add_buffer_data_to_no2(NO2_DAILY, NO2_DIR, var_dict, out_csv='')
+    add_buffer_data_to_no2(NO2_DAILY, NO2_DIR, dist_dict, out_csv=NO2_DAILY.replace('.csv', '_popden.csv'))
+
 
 if __name__ == "__main__":
     main()

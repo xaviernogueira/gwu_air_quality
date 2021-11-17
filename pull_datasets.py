@@ -8,6 +8,8 @@ import subprocess
 import os
 
 # static variables
+import pandas as pd
+
 USERNAME = ''  # data hub username
 PASSWORD = ''  # data hub password
 
@@ -95,7 +97,47 @@ def move_or_delete_files(in_folder, out_folder, str_in):
         return print('out_folder parameter must be a directory name to move files, or =False to delete files')
 
 
+def build_master_csv(main_csv, in_csv, columns, out_csv=None, join_by=None):
+    """
+    This function allows columns to be joined to master daily no2 observations .csv file.
+    :param main_csv: the main daily no2 observations csv (to be overwritten or copied)
+    :param in_csv: a csv with columns to join to the main one
+    :param columns: a list of strings or single string of column headers in in_csv to join to main_csv
+    :param out_csv: if specified (optional) the joined csv is saved in a new location, rather than overwriting main_csv
+    :param join_by: a list with column(s) that when combined form unique identifiers (default: [station_id, day])
+    :return: the output csv location
+    """
+    # set up dataframes and defaults
+    main_df = pd.read_csv(main_csv)
+    in_df = pd.read_csv(in_csv)
+    print('Joining columns %s from %s to %s' % (columns, os.path.basename(in_csv), os.path.basename(main_csv)))
+
+    if out_csv is None:
+        out_csv = main_csv
+
+    if isinstance(columns, str):
+        columns = [columns]
+
+    if join_by is None:
+        join_by = ['station_id', 'dayofyear']
+
+    jcols = in_df[join_by + columns]
+    out_df = main_df.merge(jcols, on=join_by, how='left')
+    out_df[columns] = out_df[columns].fillna(0)
+
+    out_df.to_csv(out_csv)
+    print('Output: %s' % out_csv)
+
+    return out_csv
+
+
 #################################################
 
 dems = r'C:\Users\xrnogueira\Documents\Data\3DEP'
+CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
+main_csv = CSV_DIR + '\\master_no2_daily.csv'
+in_csv = CSV_DIR + '\\clean_no2_daily_2019_popden.csv'
+columns = 'pod_den_1100'
+test_csv = CSV_DIR + '\\test.csv'
+build_master_csv(main_csv, in_csv, columns, out_csv=None, join_by=None)
 

@@ -331,6 +331,7 @@ def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
     return out_table
 
 
+
 ###################################################################
 from tropomi_data_functions import ncf_metadata
 no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
