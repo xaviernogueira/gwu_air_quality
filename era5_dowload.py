@@ -330,7 +330,7 @@ def main(dataset, out_dir, variables, years, months, hours, form, LOOP_MONTHS=Fa
         correct_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
         for i, m in enumerate(months):
-            months_dict[m] = ["{0:0=2d}".format(d) for d in list(range(correct_days[i]))]
+            months_dict[m] = ["{0:0=2d}".format(d) for d in list(range(1, correct_days[i] + 1))]
 
         products = None
 
@@ -372,8 +372,8 @@ def main(dataset, out_dir, variables, years, months, hours, form, LOOP_MONTHS=Fa
 #  ######################## SET INPUTS ###################################
 d_url = 'https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=form'
 out_dir = r'C:\Users\xrnogueira\Documents\era5_code_test'
-variables = ['10m_u_component_of_wind', 'runoff']
-years = [2018, 2019]
+variables = ['10m_u_component_of_wind', '10m_v_component_of_wind']
+years = [2021]
 form = 'netcdf'
 
 # tune time parameters. If both set to 'ALL', all hours and months are downloaded
@@ -382,10 +382,10 @@ hours = 'ALL'
 days = 'ALL'
 
 # can be a place name (string), if None data is downloaded globally.
-area = 'Germany'
+area = ''
 
 # if true, each variable is output separately
-LOOP_VARS = True
+LOOP_VARS = False
 
 # if True, a file is downloaded for the selected hours within each day (for hourly data only).
 LOOP_DAYS = True
