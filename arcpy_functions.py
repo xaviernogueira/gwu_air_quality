@@ -4,17 +4,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-
-
-def init_logger(filename):
-    """Initializes logger w/ same name as python file"""
-
-    logging.basicConfig(filename=os.path.basename(filename).replace('.py', '.log'), filemode='w', level=logging.INFO)
-    stderr_logger = logging.StreamHandler()
-    stderr_logger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
-    logging.getLogger().addHandler(stderr_logger)
-
-    return
+from useful_functions import init_logger
 
 
 def batch_resample_or_aggregate(in_folder, cell_size, out_folder='', str_in='.tif', agg=False):
@@ -164,15 +154,19 @@ def batch_raster_project(in_folder,  spatial_ref, out_folder='', suffix='_p.tif'
     return out_folder
 
 
-def netcdf_to_tiff(ncf, tifname='', out_folder=''):
+def netcdf_to_tiff(ncf, tifname='', out_folder='', lon_lat=None):
     """
     Converts a .nc netCDF file into N rasters (one for each variable) with bands representing the time dimension.
     :param ncf: The location of a .nc netCDF file (no .ncf capabilities)
     :param tifname: Basename (str) for the output tif (i.e, era5) with length <= 5
     :param out_folder: An alternative output folder can be designated (default i same folder as ncf)
+    :param lon_lat: A list the NetCDF X and Y dimension names (default is ['longitude', 'latitude'])
     :return: A dictionary with variable names as keys, and tiff locations are values
     """
-    # initialize logger and format directories
+    # initialize logger, format directories, and set defaults
+    if lon_lat is None:
+        lon_lat = ['longitude', 'latitude']
+
     init_logger(__file__)
     logging.info('Converting %s to TIFF...' % ncf)
     in_dir = os.path.dirname(ncf)
@@ -189,7 +183,7 @@ def netcdf_to_tiff(ncf, tifname='', out_folder=''):
     nc_fp = arcpy.NetCDFFileProperties(ncf)
     variables = [str(i) for i in nc_fp.getVariables()]
 
-    drops = ['latitude', 'longitude', 'lat', 'long', 'time']
+    drops = ['latitude', 'longitude', 'lat', 'long', 'time', 'lon']
     variables = [i for i in variables if i not in drops]
 
     if len(variables) == 0:
@@ -205,7 +199,7 @@ def netcdf_to_tiff(ncf, tifname='', out_folder=''):
             out_dir = tras.replace('v1.tif', '.tif')
             try:
 
-                out = arcpy.MakeNetCDFRasterLayer_md(ncf, var, 'longitude', 'latitude',
+                out = arcpy.MakeNetCDFRasterLayer_md(ncf, var, lon_lat[0], lon_lat[1],
                                                out_raster_layer=tras, band_dimension='time')
                 arcpy.CopyRaster_management(out, out_dir)
                 out_dict[var] = out_dir
@@ -221,7 +215,23 @@ def netcdf_to_tiff(ncf, tifname='', out_folder=''):
 
 def make_averaged_CRU_rasters(in_folder, variable='q_air'):
 
-    return
+    arcpy.CheckOutExtension("Spatial")
+
+    # Define input folder and create list of TIF rasters in folder
+    logging.info('Averaging %s rasters in %s' % (variable, in_folder))
+    arcpy.env.workspace = in_folder
+    all_rasters = arcpy.ListRasters(raster_type='TIF')
+    rasters = [i for i in all_rasters if variable in i]
+
+    # Run cell statistics
+    calc = arcpy.sa.CellStatistics(rasters, statistics_type="MEAN")
+    calc.save(r'E:\RASTERS\raster.img')
+
+    # save as a new raster
+    out_ras = in_folder + '%s_averaged.tif' % variable
+    logging.info('Done \n Output: %s' % out_ras)
+
+    return out_ras
 
 
 def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
@@ -357,13 +367,19 @@ if era5_extract:
     era5_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
     era5_sample_to_csv(no2_stations_daily, tiff_dict=era5_dict, sample_points=era5_aligned_points, out_table=era5_obs_table)
 
-cru_extract = False  # run CRU extraction, we can use real points
+cru_extract = True  # run CRU extraction, we can use real points
 if cru_extract:
     cru_obs_table = DIR + '\\no2_obs_wCRU.csv'
-    # cru_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
+    cru_dir = r'C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity'
+    cru_files = os.listdir(cru_dir)
+    for i, f in enumerate(cru_files):
+        file = cru_dir + '\\%s' % f
+        m_code = i + 1
+        cru_dict = netcdf_to_tiff(file, tifname='cru_%s' % m_code, out_folder='', lon_lat=['lon', 'lat'])
+    #make_averaged_CRU_rasters(in_folder, variable='q_air')
     # era5_sample_to_csv(no2_stations_daily, tiff_dict=cru_dict, sample_points=actual_sample_points, out_table=cru_obs_table)
 
-era_sl_extract = True  # run era5-sl extraction, we can use real points
+era_sl_extract = False  # run era5-sl extraction, we can use real points
 if era_sl_extract:
     era_sl = r'C:\Users\xrnogueira\Documents\Data\ERA5\ERA5_SL\adaptor.mars.internal-1637015018.6141229-26853-13-ea530db3-0cdd-459e-b83c-f3d0540479c1.nc'
     era5_sl_obs_table = DIR + '\\no2_obs_wERA5_SL.csv'

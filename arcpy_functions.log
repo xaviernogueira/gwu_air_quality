@@ -1,5 +1,14 @@
-INFO:root:Sampling from ERA5 monthly level data...
-INFO:root:Extracting values from variable: blh
-INFO:numexpr.utils:NumExpr defaulting to 4 threads.
-INFO:root:Extracting values from variable: u100
-INFO:root:Extracting values from variable: v100
+INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201901_v2.0.nc to TIFF...
+INFO:root:NetCDF variables: ['Qair']
+INFO:root:Made tiff @ C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\cru_1_Qair.tif
+INFO:root:Done
+INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201902_v2.0.nc to TIFF...
+INFO:root:NetCDF variables: ['Qair']
+INFO:root:Made tiff @ C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\cru_2_Qair.tif
+INFO:root:Done
+INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201903_v2.0.nc to TIFF...
+INFO:root:NetCDF variables: ['Qair']
+INFO:root:Made tiff @ C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\cru_3_Qair.tif
+INFO:root:Done
+INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201904_v2.0.nc to TIFF...
+INFO:root:NetCDF variables: ['Qair']

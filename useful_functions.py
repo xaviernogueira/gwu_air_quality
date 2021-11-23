@@ -7,6 +7,19 @@ import pandas as pd
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.io import shapereader
+import logging
+import os
+
+
+def init_logger(filename):
+    """Initializes logger w/ same name as python file"""
+
+    logging.basicConfig(filename=os.path.basename(filename).replace('.py', '.log'), filemode='w', level=logging.INFO)
+    stderr_logger = logging.StreamHandler()
+    stderr_logger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+    logging.getLogger().addHandler(stderr_logger)
+
+    return
 
 
 def to_df(data):

@@ -10,8 +10,6 @@ import os
 # static variables
 import pandas as pd
 
-USERNAME = ''  # data hub username
-PASSWORD = ''  # data hub password
 
 
 def init_logger(filename):

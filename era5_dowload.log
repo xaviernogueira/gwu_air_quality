@@ -13,3 +13,6 @@ INFO:cdsapi:Request is completed
 INFO:cdsapi:Downloading https://download-0010.copernicus-climate.eu/cache-compute-0010/cache/data0/adaptor.mars.internal-1637613278.6059663-3027-14-fe552778-003e-4df7-a030-4a461bb4573b.nc to C:\Users\xrnogueira\Documents\era5_code_test\reanalysis-era5-land_2021_01_01.nc (593.6M)
 WARNING:cdsapi:Recovering from connection error [HTTPSConnectionPool(host='download-0010.copernicus-climate.eu', port=443): Max retries exceeded with url: /cache-compute-0010/cache/data0/adaptor.mars.internal-1637613278.6059663-3027-14-fe552778-003e-4df7-a030-4a461bb4573b.nc (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate (_ssl.c:1131)')))], attemps 0 of 500
 WARNING:cdsapi:Retrying in 120 seconds
+INFO:cdsapi:Retrying now...
+WARNING:cdsapi:Recovering from connection error [HTTPSConnectionPool(host='download-0010.copernicus-climate.eu', port=443): Max retries exceeded with url: /cache-compute-0010/cache/data0/adaptor.mars.internal-1637613278.6059663-3027-14-fe552778-003e-4df7-a030-4a461bb4573b.nc (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate (_ssl.c:1131)')))], attemps 1 of 500
+WARNING:cdsapi:Retrying in 120 seconds
