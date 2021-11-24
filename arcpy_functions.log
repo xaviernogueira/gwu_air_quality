@@ -1,5 +1,5 @@
 INFO:root:Running plain bagel (no months/days) raster sampling.
 INFO:root:Pulling station point Z values...
 INFO:root:Pulling station point Z_r values...
-INFO:root:Done. 
- Output csv with variables ['Z', 'Z_r'] @ C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019_export.csv
+INFO:root:Done
+Output csv with variables ['Z', 'Z_r'] @ C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019_export.csv

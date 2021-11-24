@@ -366,6 +366,8 @@ def raster_sample(in_table, sample_points, var_dict):
 
     in_df = pd.read_csv(in_table)
     in_df.sort_values('station_id', inplace=True)
+    out_df = in_df.copy()
+    samp_dfs = []
 
     for var in var_names:
         ras = var_dict[var]
@@ -384,8 +386,12 @@ def raster_sample(in_table, sample_points, var_dict):
 
         samp_df = pd.read_csv(t_csv)
         samp_df.rename(columns={ras_name: var, 'no2_annual': 'station_id'}, inplace=True)
+        samp_dfs.append(samp_df)
 
-        out_df = in_df.merge(samp_df, on=['station_id'], how='left')
+    # join to the daily observation csv
+    for i, df in enumerate(samp_dfs):
+        var = var_names[i]
+        out_df = out_df.merge(df, on=['station_id'], how='left')
         out_df[var] = out_df[var].fillna(0)
 
     out_df.to_csv(out_csv)
