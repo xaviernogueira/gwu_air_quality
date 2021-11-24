@@ -1,9 +1,10 @@
-import os
-import arcpy
 import logging
+import os
 
+import arcpy
 import numpy as np
 import pandas as pd
+
 from useful_functions import init_logger
 
 
@@ -99,7 +100,7 @@ def batch_resample_or_aggregate(in_folder, cell_size, out_folder='', str_in='.ti
     return out_folder
 
 
-def batch_raster_project(in_folder,  spatial_ref, out_folder='', suffix='_p.tif'):
+def batch_raster_project(in_folder, spatial_ref, out_folder='', suffix='_p.tif'):
     """
     This function batch projects rasters and places them in a new flder
     :param in_folder: folder containing .tif rasters
@@ -200,7 +201,7 @@ def netcdf_to_tiff(ncf, tifname='', out_folder='', lon_lat=None):
             try:
 
                 out = arcpy.MakeNetCDFRasterLayer_md(ncf, var, lon_lat[0], lon_lat[1],
-                                               out_raster_layer=tras, band_dimension='time')
+                                                     out_raster_layer=tras, band_dimension='time')
                 arcpy.CopyRaster_management(out, out_dir)
                 out_dict[var] = out_dir
                 logging.info('Made tiff @ %s' % out_dir)
@@ -214,7 +215,7 @@ def netcdf_to_tiff(ncf, tifname='', out_folder='', lon_lat=None):
 
 
 def make_averaged_CRU_rasters(in_folder, variable='q_air'):
-
+    """INCOMPLETE"""
     arcpy.CheckOutExtension("Spatial")
 
     # Define input folder and create list of TIF rasters in folder
@@ -278,7 +279,7 @@ def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
         prev_id = 9999999999  # facilities faster processing
         sub_df = ''  # placeholder
 
-        samp_df.rename(columns= {'era5_sp_Ba': 'era5_sp_12'}, inplace=True)
+        samp_df.rename(columns={'era5_sp_Ba': 'era5_sp_12'}, inplace=True)
 
         # build month codes for column header identification
         months = []
@@ -341,33 +342,95 @@ def era5_sample_to_csv(in_table, tiff_dict, sample_points, out_table):
     return out_table
 
 
+def raster_sample(in_table, sample_points, var_dict):
+    """
+    Plain bagel raster sampling (w/o month or days)
+    :param in_table: A table with daily NO2 observations
+    :param sample_points: AQ station sample points with a station_id field
+    :param var_dict: a dictionary with variable names as keys and associated rasters as items
+    :return: a new csv
+    """
 
-###################################################################
-from tropomi_data_functions import ncf_metadata
+    # initialize logger and format directories
+    init_logger(__file__)
+    logging.info('Running plain bagel (no months/days) raster sampling.')
+    out_dir = os.path.dirname(sample_points)
+    arcpy.env.overwriteOutput = True
+    out_csv = in_table.replace('.csv', '_export.csv')
+    temp_files = out_dir + '\\temp_files'
+    if not os.path.exists(temp_files):
+        os.makedirs(temp_files)
+
+    # set variables names
+    var_names = list(var_dict.keys())
+
+    in_df = pd.read_csv(in_table)
+    in_df.sort_values('station_id', inplace=True)
+
+    for var in var_names:
+        ras = var_dict[var]
+        ras_name = os.path.basename(ras)[:-4]
+        logging.info('Pulling station point %s values...' % var)
+        t_dbf = temp_files + '\\%s_sample.dbf' % var
+        t_csv = t_dbf.replace('.dbf', '.csv')
+
+        # make a sample dataframe with a _Band_# header suffixes where # is the month index
+        sample_table = arcpy.sa.Sample(ras, sample_points, t_dbf, unique_id_field='station_id')
+
+        if os.path.exists(t_csv):
+            os.remove(t_csv)
+
+        arcpy.TableToTable_conversion(sample_table, os.path.dirname(t_csv), os.path.basename(t_csv))
+
+        samp_df = pd.read_csv(t_csv)
+        samp_df.rename(columns={ras_name: var, 'no2_annual': 'station_id'}, inplace=True)
+
+        out_df = in_df.merge(samp_df, on=['station_id'], how='left')
+        out_df[var] = out_df[var].fillna(0)
+
+    out_df.to_csv(out_csv)
+    logging.info('Done\nOutput csv with variables %s @ %s' % (var_names, out_csv))
+
+    return out_csv
+
+
+#  ####### CHOOSE WHAT TO RUN ##########
+raster_funcs = False  # batch raster resample/aggreagte and project
+era5_extract = False  # run era5 extraction, must use aligned era5 points
+cru_extract = False  # run CRU extraction, we can use real points
+era_sl_extract = False  # run era5-sl extraction, we can use real points
+elevation_extract = True  # run elevation (Z) and elevation difference (Z_d) extraction
+
+#  ####### DEFINE CONSTANT INPUTS ##########
+
 no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
 DIR = os.path.dirname(no2_stations_daily)
 actual_sample_points = DIR + '\\no2_annual_2019_points.shp'
 era5_aligned_points = DIR + '\\no2_annual_2019_points_era5_aligned.shp'
 
-raster_funcs = False # batch raster resample/aggreagte and project
+# ######### RUN CHOSEN DATA EXTRACTIONS ##########
+
 if raster_funcs:
     dem_folder = r'C:\Users\xrnogueira\Documents\Data\3DEP'
     pop_den = r'C:\Users\xrnogueira\Documents\Data\Population_density'
     dem_for_ref = dem_folder + '\\USGS_1_n25w082.tif'
     resampled_pop = r'C:\Users\xrnogueira\Documents\Data\resampled_popden'
-    # batch_resample_or_aggregate(in_folder=pop_den, cell_size=0.001, out_folder=resampled_pop, str_in='.tif', agg=True)
-    # atch_raster_project(resampled_pop,  spatial_ref=dem_for_ref, out_folder='', suffix='_p.tif')
+    batch_resample_or_aggregate(in_folder=pop_den, cell_size=0.001, out_folder=resampled_pop, str_in='.tif', agg=True)
+    batch_raster_project(resampled_pop, spatial_ref=dem_for_ref, out_folder='', suffix='_p.tif')
 
-
-era5_extract = False  # run era5 extraction, must use aligned era5 points
 if era5_extract:
     era5_ncf = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
-    # era5_dict = {'sp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_sp.tif', 'swvl1': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_swvl1.tif', 't2m': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_t2m.tif', 'tp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_tp.tif', 'u10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_u10.tif', 'v10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_v10.tif'}
+    era5_dict = {'sp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_sp.tif',
+                 'swvl1': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_swvl1.tif',
+                 't2m': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_t2m.tif',
+                 'tp': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_tp.tif',
+                 'u10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_u10.tif',
+                 'v10': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\era5_v10.tif'}
     era5_obs_table = DIR + '\\no2_obs_wERA5.csv'
     era5_dict = netcdf_to_tiff(era5_ncf, tifname='era5', out_folder='')
-    era5_sample_to_csv(no2_stations_daily, tiff_dict=era5_dict, sample_points=era5_aligned_points, out_table=era5_obs_table)
+    era5_sample_to_csv(no2_stations_daily, tiff_dict=era5_dict, sample_points=era5_aligned_points,
+                       out_table=era5_obs_table)
 
-cru_extract = True  # run CRU extraction, we can use real points
 if cru_extract:
     cru_obs_table = DIR + '\\no2_obs_wCRU.csv'
     cru_dir = r'C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity'
@@ -376,13 +439,23 @@ if cru_extract:
         file = cru_dir + '\\%s' % f
         m_code = i + 1
         cru_dict = netcdf_to_tiff(file, tifname='cru_%s' % m_code, out_folder='', lon_lat=['lon', 'lat'])
-    #make_averaged_CRU_rasters(in_folder, variable='q_air')
-    # era5_sample_to_csv(no2_stations_daily, tiff_dict=cru_dict, sample_points=actual_sample_points, out_table=cru_obs_table)
+    #  make_averaged_CRU_rasters(in_folder, variable='q_air')
+    #  era5_sample_to_csv(no2_stations_daily, tiff_dict=cru_dict, sample_points=actual_sample_points, out_table=cru_obs_table)
 
-era_sl_extract = False  # run era5-sl extraction, we can use real points
 if era_sl_extract:
     era_sl = r'C:\Users\xrnogueira\Documents\Data\ERA5\ERA5_SL\adaptor.mars.internal-1637015018.6141229-26853-13-ea530db3-0cdd-459e-b83c-f3d0540479c1.nc'
     era5_sl_obs_table = DIR + '\\no2_obs_wERA5_SL.csv'
-    #netcdf_to_tiff(era_sl, tifname='era5_SL', out_folder='')
-    era5_sl_dict = {'blh': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_blh.tif', 'u100': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_u100.tif', 'v100': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_v100.tif'}
-    era5_sample_to_csv(no2_stations_daily, era5_sl_dict, sample_points=actual_sample_points, out_table=era5_sl_obs_table)
+    netcdf_to_tiff(era_sl, tifname='era5_SL', out_folder='')
+    era5_sl_dict = {'blh': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_blh.tif',
+                    'u100': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_u100.tif',
+                    'v100': 'C:\\Users\\xrnogueira\\Documents\\Data\\ERA5\\ERA5_SL\\era5_SL_v100.tif'}
+    era5_sample_to_csv(no2_stations_daily, era5_sl_dict, sample_points=actual_sample_points,
+                       out_table=era5_sl_obs_table)
+
+if elevation_extract:
+    dem_dir = r'C:\Users\xrnogueira\Documents\Data\usa_rasters_0p001'
+    fine_dem = dem_dir + '\\dem_mos.tif'
+    relative_dem = dem_dir + '\\z_rel.tif'
+    var_dict = {'Z': fine_dem, 'Z_r': relative_dem}
+    raster_sample(no2_stations_daily, actual_sample_points, var_dict)
+

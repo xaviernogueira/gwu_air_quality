@@ -1,14 +1,5 @@
-INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201901_v2.0.nc to TIFF...
-INFO:root:NetCDF variables: ['Qair']
-INFO:root:Made tiff @ C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\cru_1_Qair.tif
-INFO:root:Done
-INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201902_v2.0.nc to TIFF...
-INFO:root:NetCDF variables: ['Qair']
-INFO:root:Made tiff @ C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\cru_2_Qair.tif
-INFO:root:Done
-INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201903_v2.0.nc to TIFF...
-INFO:root:NetCDF variables: ['Qair']
-INFO:root:Made tiff @ C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\cru_3_Qair.tif
-INFO:root:Done
-INFO:root:Converting C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity\Qair_WFDE5_CRU_201904_v2.0.nc to TIFF...
-INFO:root:NetCDF variables: ['Qair']
+INFO:root:Running plain bagel (no months/days) raster sampling.
+INFO:root:Pulling station point Z values...
+INFO:root:Pulling station point Z_r values...
+INFO:root:Done. 
+ Output csv with variables ['Z', 'Z_r'] @ C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019_export.csv

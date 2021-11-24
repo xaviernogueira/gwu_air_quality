@@ -4,9 +4,6 @@ Quick and useful functions for data science: pre-processing, plotting, etc.
 author @xaviernogueira
 """
 import pandas as pd
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-from cartopy.io import shapereader
 import logging
 import os
 
@@ -87,8 +84,13 @@ def spaces_format(data):
 
     return out
 
+
 def cartography(ax, projection):
     """"Add geographic features (may not work unless on cartopy 0.20.0)"""
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    from cartopy.io import shapereader
+
     ax.add_feature(cfeature.LAND)
     ax.add_feature(cfeature.OCEAN)
     ax.add_feature(cfeature.LAKES)
