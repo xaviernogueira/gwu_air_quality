@@ -13,16 +13,6 @@ import numpy as np
 import netCDF4 as nc
 
 
-
-# inputs for running locally
-DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi'
-LATLONG = DIR + '\\LatLonGrid.ncf'
-TROP_2019 = DIR + '\\Tropomi_NO2_griddedon0p01grid_2019_QA75.ncf'
-NO2_AND_LATLONG = DIR + '\\Tropomi_NO2_latlon_griddedon0.01grid_2019_QA75.ncf'
-ERA5 = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
-IN_LIST = [LATLONG, TROP_2019]
-
-
 def ncf_metadata(ncf_files):
     """
      Parameters: a path (str) or a list of paths (list) to .ncf files
@@ -262,7 +252,20 @@ def convert_raster(in_raster, out_folder='', out_form=['GTiff', '.tif']):
     return out_dir
 
 
-def extract_vals_from_cdf(stations_csv, monthly_dir, latlong_file, year=2019):
+def find_nearest(array, value):
+    """
+    A function used in .nc extraction via lat/lon that finds the nearest array values index
+    :param array: a 1D numpy array
+    :param value: a int or float value
+    :return:
+    """
+    array = np.asarray(array)
+    index = (np.abs(array - value)).argmin()
+
+    return index
+
+
+def extract_vals_from_tropomi(stations_csv, monthly_dir, latlong_file, year=2019):
     """
     This function extracts values using array indexing from a netCDF file at specified lat/long points.
     :param stations_csv: A list of station observations with a month column and lat/long values
@@ -296,13 +299,6 @@ def extract_vals_from_cdf(stations_csv, monthly_dir, latlong_file, year=2019):
     longs = in_coors['LON'][:]
     lats = in_coors['LAT'][:]
 
-    # define function to find nearest array values index
-    def find_nearest(array, value):
-        array = np.asarray(array)
-        index = (np.abs(array - value)).argmin()
-        value = array[index]
-        return index
-
     # add the associated (month, location) TROPOMI values to a list, add the list as a column
     tropomi_data = []
 
@@ -325,28 +321,43 @@ def extract_vals_from_cdf(stations_csv, monthly_dir, latlong_file, year=2019):
     return print(tropomi_data)
 
 
+def extract_vals_from_cdf(stations_csv, var_name, monthly_dir, interval='month', year=2019):
+    """
+    Extracts values using lat/long and time (either month or day) from a netcdf F(time, lat, lon) variable.
+    :param stations_csv: A list of station observations with a month column and lat/long values.
+    :param var_name: A string or list of strings representing NetCDF variables with a F(time, lat, lon) structure.
+    :param monthly_dir: A directory storing monthly .nc files.
+    :param interval: A string either 'day', 'month', 'year'. Specifies interval in which to average values. Must also
+    be column headers in the stations_csv file.
+    :param year: Default 2019. Used for recognizing .nc files in the directory.
+    :return:
+    """
+    return
 
 
-################################################################
+#  ###############################################################
 # run functions
 
-#no2_plotting(TROP_2019, LATLONG, std=False, place='los angeles')
-
-
+# inputs for running locally
+DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi'
+LATLONG = DIR + '\\LatLonGrid.ncf'
+TROP_2019 = DIR + '\\Tropomi_NO2_griddedon0p01grid_2019_QA75.ncf'
+NO2_AND_LATLONG = DIR + '\\Tropomi_NO2_latlon_griddedon0.01grid_2019_QA75.ncf'
+ERA5 = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
+IN_LIST = [LATLONG, TROP_2019]
 
 # make a list of rasters
-
-netcdf_months = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi\by_month'
+netcdf_months = r'C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity'
 no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
 cdf_files = os.listdir(netcdf_months)
-inputs = [netcdf_months + '\\' + i for i in cdf_files]
+inputs = [netcdf_months + '\\' + i for i in cdf_files if i[-2:] == 'nc']
 
 
 #################################################
 def main():
-    ncf_metadata(ERA5)
+    ncf_metadata(inputs)
     #convert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
-    #extract_vals_from_cdf(no2_stations_daily, netcdf_months, LATLONG, year=2019)
+    #extract_vals_from_tropomi(no2_stations_daily, netcdf_months, LATLONG, year=2019)
 
 if __name__ == "__main__":
     main()

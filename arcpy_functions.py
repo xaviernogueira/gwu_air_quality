@@ -462,6 +462,6 @@ if elevation_extract:
     dem_dir = r'C:\Users\xrnogueira\Documents\Data\usa_rasters_0p001'
     fine_dem = dem_dir + '\\dem_mos.tif'
     relative_dem = dem_dir + '\\z_rel.tif'
-    var_dict = {'Z': fine_dem, 'Z_r': relative_dem}
+    var_dict = {'Z_r': relative_dem}
     raster_sample(no2_stations_daily, actual_sample_points, var_dict)
 

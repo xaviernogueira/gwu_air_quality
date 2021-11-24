@@ -135,7 +135,7 @@ dems = r'C:\Users\xrnogueira\Documents\Data\3DEP'
 CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
 main_csv = CSV_DIR + '\\master_no2_daily.csv'
 in_csv = CSV_DIR + '\\clean_no2_daily_2019_ZandZr.csv'
-columns = ['Z', 'Z_r']
+columns = ['Z_r']
 test_csv = CSV_DIR + '\\test.csv'
 build_master_csv(main_csv, in_csv, columns, out_csv=None, join_by=None)
 
