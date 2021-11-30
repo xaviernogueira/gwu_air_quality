@@ -99,6 +99,13 @@ def cross_cross(xtr, out_folder=None):
     fig = g.figure.savefig(out_file)
     return fig
 
+def station_stratification(in_data):
+    """
+    A function that returns X_test, X_train, y_test, y_train stratified by station_id
+    :return:
+    """
+
+
 def train_xgb(X_train, y_train, gammas, etas, lambdas, min_child_weights, max_depths, scoring='r2'):
     """
 
