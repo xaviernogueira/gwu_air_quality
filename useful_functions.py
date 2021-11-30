@@ -100,3 +100,37 @@ def cartography(ax, projection):
     ax.gridlines(projection, draw_labels=True, alpha=0, linestyle='--')
 
 
+def make_test_csv(csv, rows=500):
+    """
+    Takes a csv and randomly samples N number of rows to make a ML test csv (faster computation)
+    :param csv: a csv
+    :param rows: number of rows for test csv (int, default is 500)
+    :return: new test csv
+    """
+
+    in_df = pd.read_csv(csv)
+    shuffled = in_df.sample(frac=1).reset_index()
+
+    if isinstance(rows, int):
+        out_df = shuffled.sample(n=rows)
+
+    else:
+        return print('ERROR: Rows parameter must be an integer')
+
+    out_dir = os.path.dirname(csv)
+    out_csv = out_dir + '\\%s' % os.path.basename(csv).replace('.csv', '_test_%s_rows.csv' % rows)
+
+    out_df.to_csv(out_csv)
+    return out_csv
+
+
+def main(csv, rows=500):
+    make_test_csv(csv, rows)
+
+# ########### DEFINE INPUTS #############
+CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
+main_csv = CSV_DIR + '\\master_no2_daily.csv'
+
+if __name__ == '__main__':
+    main(main_csv)
+
