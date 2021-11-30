@@ -459,9 +459,9 @@ if era_sl_extract:
                        out_table=era5_sl_obs_table)
 
 if elevation_extract:
-    dem_dir = r'C:\Users\xrnogueira\Documents\Data\usa_rasters_0p001'
-    fine_dem = dem_dir + '\\dem_mos.tif'
-    relative_dem = dem_dir + '\\z_rel.tif'
+    dem_dir = r'C:\Users\xrnogueira\Documents\Data\3PED'
+    fine_dem = dem_dir + '\\ETOPO1_Ice_g_geotiff.tif'
+    relative_dem = dem_dir + '\\z_rel.tif'  # Make again (ugh)
     var_dict = {'Z': fine_dem}
     raster_sample(no2_stations_daily, actual_sample_points, var_dict)
 

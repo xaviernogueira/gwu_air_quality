@@ -35,6 +35,9 @@ def prep_input(in_data, in_cols, test_prop=0.15):
                 new = new[:-1]
             in_data.rename(columns={str(col): new}, inplace=True)
 
+    # keep only in_cols
+    in_data = in_data[in_cols]
+
     # split to X and Y data
     ytr = in_data['mean_no2'].values  # define y variable
     xtr = in_data.drop('mean_no2', axis=1)  # define x variables
@@ -99,27 +102,19 @@ def cross_cross(xtr, out_folder=None):
     fig = g.figure.savefig(out_file)
     return fig
 
-def station_stratification(in_data):
-    """
-    A function that returns X_test, X_train, y_test, y_train stratified by station_id
-    :return:
-    """
 
-
-def train_xgb(X_train, y_train, gammas, etas, lambdas, min_child_weights, max_depths, scoring='r2'):
+def train_xgb(X_train, y_train, params_list, scoring='r2'):
     """
-
+    Used GridCV to find optimal XGBoost parameters to fit the training dataset.
     :param X_train: dataframe or XDarray with independent variable training columns
     :param y_train: dataframe or XDarray with dependent variable training columns
-    :param gammas:
-    :param etas:
-    :param lambdas:
-    :param min_child_weights:
-    :param max_depths:
+    :param params_list: a list of lists of grid paramters to try. Must be of the form
+    [gamma_range, eta_range, lambda_range, min_child_weight_range, max_depth_range]
     :param scoring: a scikit-learn scorer string (default is r2)
     :return: a list containing [model.cv_results_, model.best_estimator_, model.best_params_, model.best_score_]
     """
     # set up parameter grid and scorers
+    gammas, etas, lambdas, min_child_weights, max_depths = params_list
     param_grid = {'gamma': gammas, 'eta': etas, 'reg_lambda': lambdas, 'min_child_weight': min_child_weights,
                   'max_depth': max_depths}
 
@@ -139,7 +134,11 @@ def train_xgb(X_train, y_train, gammas, etas, lambdas, min_child_weights, max_de
     return out_list
 
 
-def main(in_csv, in_cols):
+def plot_model(best_estimator, best_params, best_score):
+    return
+
+
+def main(in_csv, in_cols, params_list):
     init_logger(__file__)
     out_folder = os.path.dirname(in_csv)
     in_data = pd.read_csv(in_csv)
@@ -148,7 +147,9 @@ def main(in_csv, in_cols):
     out = prep_input(in_data, in_cols)
     X_df, Y_df = out[0]  # [0][0] is X dataframe, [0][1] is Y dataframe
     X_train, X_test, y_train, y_test = out[1]
-    cross_cross(in_data, out_folder=out_folder)
+    cross_cross(X_df, out_folder=out_folder)
+    out_list = train_xgb(X_train, y_train, params_list, scoring='r2')
+    plot_model(best_estimator=out_list[1], best_params=out_list[2], best_score=out_list[3])
 
     return
 
@@ -156,6 +157,8 @@ def main(in_csv, in_cols):
 #  ########## SET XGBOOST PARAMETER RANGES ###########
 CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
 main_csv = CSV_DIR + '\\master_no2_daily.csv'
+test_csv = CSV_DIR + '\\master_no2_daily_test_500_rows.csv'
+
 
 keep_cols = ['mean_no2', 'weekend', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
                  's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100']
@@ -164,6 +167,8 @@ eta_range = list(np.arange(0.05, 0.5, 0.05))
 lambda_range = list(np.arange(0.6, 1.4, 0.2))
 min_child_weight_range = list(np.arange(1, 21, 5))
 max_depth_range = list(np.arange(4, 7, 1))
+
+params_list = [gamma_range, eta_range, lambda_range, min_child_weight_range, max_depth_range]
 
 SCORERS = {'r2': make_scorer(r2_score), 'neg_mean_squared_error': make_scorer(mean_squared_error)}
 SCORERS_str = list(SCORERS.keys())
