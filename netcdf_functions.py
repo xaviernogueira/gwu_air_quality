@@ -363,6 +363,7 @@ def main():
     #ncf_metadata(inputs)
     #convert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
     #extract_vals_from_tropomi(no2_stations_daily, netcdf_months, LATLONG, year=2019)
+    return
 
 if __name__ == "__main__":
     main()

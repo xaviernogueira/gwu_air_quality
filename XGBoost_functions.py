@@ -247,7 +247,7 @@ def plot_hyperparams(scoring_df, param_grid, out_folder):
             # get column key for dataframe and add to list
             col_key = 'param_%s' % param
             param_cols.append(col_key)
-            ax = sns.boxenplot(x=col_key, y='mean_train_score', data=scoring_df)
+            ax = sns.boxenplot(x=col_key, y='mean_test_score', data=scoring_df)
             ax.figure.savefig(hyp_dir + '\\%s.png' % param)
             plt.cla()
     logging.info('Done. Plots made for each hyper-parameter @ %s' % hyp_dir)
@@ -290,10 +290,10 @@ test_csv = CSV_DIR + '\\master_no2_daily_test_500_rows.csv'
 keep_cols = ['mean_no2', 'weekend', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
                  's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r']
 gamma_range = list(np.arange(0, 1, 0.5))
-eta_range = list(np.arange(0.01, 0.3, 0.05))
+eta_range = list(np.arange(0.01, 0.31, 0.05))
 lambda_range = list(np.arange(0.6, 1.4, 0.2))
 colsample_range = list(np.arange(0.5, 1, 0.25))
-max_depth_range = list(np.arange(5, 7, 1))
+max_depth_range = list(np.arange(4, 7, 1))
 
 params_list = [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
 
