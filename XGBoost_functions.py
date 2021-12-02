@@ -1,5 +1,6 @@
 import os.path
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -103,7 +104,7 @@ def cross_cross(xtr, out_folder=None):
     return fig
 
 
-def train_xgb(X_train, y_train, params_list, scoring='r2'):
+def train_xgb(X_train, y_train, param_grid, scoring='r2'):
     """
     Used GridCV to find optimal XGBoost parameters to fit the training dataset.
     :param X_train: dataframe or XDarray with independent variable training columns
@@ -113,11 +114,6 @@ def train_xgb(X_train, y_train, params_list, scoring='r2'):
     :param scoring: a scikit-learn scorer string (default is r2)
     :return: a list containing [model.cv_results_, model.best_estimator_, model.best_params_, model.best_score_]
     """
-    # set up parameter grid and scorers
-    gammas, etas, lambdas, min_child_weights, max_depths = params_list
-    param_grid = {'gamma': gammas, 'eta': etas, 'reg_lambda': lambdas, 'min_child_weight': min_child_weights,
-                  'max_depth': max_depths}
-
     # set up XGBoost regressor model
     xgb_model = xgb.XGBRegressor(booster='gbtree', eval_metric='reg:squarederror')
     xgb_model.fit(X_train, y_train)
@@ -126,15 +122,106 @@ def train_xgb(X_train, y_train, params_list, scoring='r2'):
     xgb_iters = GridSearchCV(xgb_model, param_grid, cv=5, scoring=scoring, verbose=1, refit=True, return_train_score=True)
     xgb_iters.fit(X_train, y_train)
 
-    grid_results = pd.from_dict(xgb_iters.cv_results_)
+    cv_results_df = pd.from_dict(xgb_iters.cv_results_)
     print('Best params: %s, %s: %s' % (xgb_iters.best_params_, scoring, xgb_iters.best_score_))
 
-    out_list = [grid_results, xgb_iters.best_estimator_, xgb_iters.best_params_, xgb_iters.best_score_]
+    out_list = [cv_results_df, xgb_iters.best_estimator_, xgb_iters.best_params_, xgb_iters.best_score_]
 
     return out_list
 
 
-def plot_model(best_estimator, best_params, best_score):
+def plot_model(X_test, y_test, best_estimator, best_params, out_folder):
+    """
+    Plots the GridSearch best_estimator against the test portion of the initial dataset
+    :param X_test: the independent variable columns array or dataframe
+    :param y_test: the test dependent variable array
+    :param best_estimator: the best_estimator_ model selected during GridSearch (out_list[1])
+    :param best_params: the best_params_ attribute of the selected model (out_list[2])
+    :param out_folder: folder where the plot is saved as a figure
+    :return: shows plot
+    """
+    from scipy.stats import gaussian_kde
+    model = best_estimator
+    grid_predictions = model.predict(X_test)
+    plt.cla()
+
+    # Calculate the point density
+    xy = np.vstack([grid_predictions, y_test])
+    z = gaussian_kde(xy)(xy)
+
+    # make and format plot
+    fig, ax = plt.subplots()
+    ax.scatter(grid_predictions, y_test, c=z, s=20)
+
+    plt.title('XGBoost - Predicting daily mean NO2 concentrations')
+    plt.plot(np.arange(0, 60, 0.1), np.arange(0, 60, 0.1), c='red')
+    plt.xlim(0, np.max(grid_predictions))
+    plt.ylim(0, np.max(y_test))
+    plt.xlabel('Predicted NO2 concentration')
+    plt.ylabel('Actual daily NO2 concentration')
+    plt.text(0, 22.5, best_params, fontsize='x-small')
+    plt.text(1, 15, 'R2 = %s' % round(r2_score(y_test, grid_predictions), 2), fontsize='large')
+
+    # save figure
+    fig_name = out_folder + '\\model_test.png'
+    plt.savefig(fig_name, dpi=300, bbox_inches='tight')
+
+    return plt.show()
+
+
+def plot_feature_importance(best_estimator, out_folder):
+    """
+    Plots feature importance for a model
+    :param best_estimator: the best_estimator_ model selected during GridSearch (out_list[1]) or other model
+    :param out_folder: folder where the plot is saved as a figure
+    :return: shows plot
+    """
+    model = best_estimator
+    plt.cla()
+
+    # plot feature importance
+    x = range(len(model.feature_importances_))
+    plt.bar(x, model.feature_importances_)
+    plt.xticks(x, model.get_booster().feature_names, rotation=-45)
+    plt.subplots_adjust(bottom=0.40)
+
+    # save figure
+    fig_name = out_folder + '\\model_feature_importance.png'
+    plt.savefig(fig_name, dpi=300, bbox_inches='tight')
+
+    return plt.show()
+
+
+def plot_hyperparams(cv_results_df, param_grid, out_folder):
+    """
+    This saves the model.cv_results_ item as a csv and saves plots of the distribution of scores for each parameter.
+    :param cv_results_df: the model.cv_results_ item (out_list[0])
+    :param param_grid: the param_grid dictionary with param name keys
+    :param out_folder: a folder to save plots and .csv in (a sub-folder \\hyper_tuning is made_
+    :return: none
+    """
+    # make folder to store hyper-parameter tuning
+    hyp_dir = out_folder + '\\hyper_tuning'
+
+    if not os.path.exists(hyp_dir):
+        os.makedirs(hyp_dir)
+
+    # get dictionary as pandas dataframe and save it as a csv
+    scoring_df = pd.DataFrame.from_dict(cv_results_df)
+    scoring_df.head(n=20)
+    scoring_df.to_csv(hyp_dir + '\\hyper_params_scoring.csv')
+
+    # make a list of hyper parameters to iterate over
+    hypers = list(param_grid.keys())
+    param_cols = []
+    for param in hypers:
+        if param != 'booster':
+            # get column key for dataframe and add to list
+            col_key = 'param_%s' % param
+            param_cols.append(col_key)
+            ax = sns.boxenplot(x=col_key, y='mean_train_score', data=scoring_df)
+            ax.figure.savefig(hyp_dir + '\\%s.png' % param)
+            ax.fig.clf()
     return
 
 
@@ -144,12 +231,22 @@ def main(in_csv, in_cols, params_list):
     in_data = pd.read_csv(in_csv)
     in_data = in_data[in_cols]
 
+    # set up parameter grid
+    gammas, etas, lambdas, colsample_range, max_depths = params_list
+    param_grid = {'gamma': gammas, 'eta': etas, 'reg_lambda': lambdas, 'colsample_bytree': colsample_range,
+                  'max_depth': max_depths}
+
+    # use GridSearch CV to tune model hyper-parameters
     out = prep_input(in_data, in_cols)
     X_df, Y_df = out[0]  # [0][0] is X dataframe, [0][1] is Y dataframe
     X_train, X_test, y_train, y_test = out[1]
     cross_cross(X_df, out_folder=out_folder)
-    out_list = train_xgb(X_train, y_train, params_list, scoring='r2')
-    plot_model(best_estimator=out_list[1], best_params=out_list[2], best_score=out_list[3])
+    out_list = train_xgb(X_train, y_train, param_grid, scoring='r2')
+    best_model = out_list[1]
+
+    # plot model performance and feature importance
+    plot_model(X_test, y_test, best_model, out_list[2], out_folder)
+    plot_feature_importance(best_model, out_folder)
 
     return
 
@@ -162,13 +259,14 @@ test_csv = CSV_DIR + '\\master_no2_daily_test_500_rows.csv'
 
 keep_cols = ['mean_no2', 'weekend', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
                  's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100']
-gamma_range = list(np.arange(0, 2, 0.5))
-eta_range = list(np.arange(0.05, 0.5, 0.05))
+gamma_range = list(np.arange(0, 1, 0.5))
+eta_range = list(np.arange(0.01, 0.3, 0.05))
 lambda_range = list(np.arange(0.6, 1.4, 0.2))
-min_child_weight_range = list(np.arange(1, 21, 5))
-max_depth_range = list(np.arange(4, 7, 1))
+colsample_range = list(np.arange(0.5, 1, 0.25))
+max_depth_range = list(np.arange(5, 7, 1))
 
-params_list = [gamma_range, eta_range, lambda_range, min_child_weight_range, max_depth_range]
+
+params_list = [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
 
 SCORERS = {'r2': make_scorer(r2_score), 'neg_mean_squared_error': make_scorer(mean_squared_error)}
 SCORERS_str = list(SCORERS.keys())
