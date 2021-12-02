@@ -14,7 +14,7 @@ from useful_functions import init_logger
 import logging
 
 
-def prep_input(in_data, in_cols, test_prop=0.10):
+def prep_input(in_data, in_cols, test_prop):
     """
     This function takes a master NO2 observation .csv, keeps/cleans only specified columns, and outputs an X and Y DF.
     :param in_csv: a master NO2 observations csv containing independent and dependent variable columns
@@ -116,7 +116,7 @@ def train_xgb(X_train, y_train, param_grid, scoring='r2'):
     :return: a list containing [model.cv_results_, model.best_estimator_, model.best_params_, model.best_score_]
     """
     # set up XGBoost regressor model
-    xgb_model = xgb.XGBRegressor(objective='reg:squarederror', booster='gbtree')
+    xgb_model = xgb.XGBRegressor(eval_metric=r2_score, objective='reg:squarederror', booster='gbtree')
     xgb_model.fit(X_train, y_train)
 
     # iterate over all parameter combinations and use the best performer to fit
@@ -182,8 +182,8 @@ def model_test(X_test, y_test, best_estimator, best_params, out_folder):
     plt.ylim(0, np.max(y_test))
     plt.xlabel('Predicted NO2 concentration')
     plt.ylabel('Actual daily NO2 concentration')
-    plt.text(0, 22.5, best_params, fontsize='x-small')
-    plt.text(1, 15, 'R2 = %s' % round(r2, 2), fontsize='large')
+    plt.annotate(best_params, (0.2, 0.9), xycoords='subfigure fraction', fontsize='x-small')
+    plt.annotate('R2 = %s' % round(r2, 2), (0.15, 0.8), xycoords='subfigure fraction', fontsize='large')
 
     # save figure
     fig_name = out_folder + '\\model_test.png'
@@ -254,19 +254,22 @@ def plot_hyperparams(scoring_df, param_grid, out_folder):
     return
 
 
-def main(in_csv, in_cols, params_list):
+def train_and_run(in_csv, in_cols, params_list, test_prop):
     init_logger(__file__)
+    logging.info('Inputs variables: %s' % in_cols)
     out_folder = os.path.dirname(in_csv)
     in_data = pd.read_csv(in_csv)
     in_data = in_data[in_cols]
 
-    # set up parameter grid
+    # set up parameter grid and print out grid nodes
     gammas, etas, lambdas, colsample_range, max_depths = params_list
     param_grid = {'gamma': gammas, 'eta': etas, 'reg_lambda': lambdas, 'colsample_bytree': colsample_range,
                   'max_depth': max_depths}
+    for i in param_grid.keys():
+        logging.info('Param: %s, testing: %s' % (i, param_grid[i]))
 
     # use GridSearch CV to tune model hyper-parameters
-    out = prep_input(in_data, in_cols)
+    out = prep_input(in_data, in_cols, test_prop)
     X_df, Y_df = out[0]  # [0][0] is X dataframe, [0][1] is Y dataframe
     X_train, X_test, y_train, y_test = out[1]
     cross_cross(X_df, out_folder=out_folder)
@@ -281,6 +284,27 @@ def main(in_csv, in_cols, params_list):
     return
 
 
+def quick_run(in_csv, in_cols, test_prop):
+
+    # prep logger and data
+    init_logger(__file__)
+    logging.info('Inputs variables: %s' % in_cols)
+    in_data = pd.read_csv(in_csv)
+    in_data = in_data[in_cols]
+
+    out_folder = os.path.dirname(in_csv)
+    out = prep_input(in_data, keep_cols, test_prop=test_prop)
+    X_train, X_test, y_train, y_test = out[1]
+
+    model = xgb.XGBRegressor(eval_metric=r2_score, objective='reg:squarederror', booster='gbtree')
+    model.fit(X_train, y_train)
+    used_params = model.get_xgb_params
+    logging.info('Quick params: %s' % used_params)
+    #colsample_bytree=chosen_params['colsample_bytree'], eta=chosen_params['eta'], gamma=chosen_params['gamma'], max_depth=chosen_params['max_depth'], reg_lambda=chosen_params['reg_lambda']
+    model_test(X_test, y_test, model, used_params, out_folder)
+
+    return
+
 #  ########## SET XGBOOST PARAMETER RANGES ###########
 CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
 main_csv = CSV_DIR + '\\master_no2_daily.csv'
@@ -288,19 +312,18 @@ test_csv = CSV_DIR + '\\master_no2_daily_test_500_rows.csv'
 
 
 keep_cols = ['mean_no2', 'weekend', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
-                 's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r']
+                 's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r', 'Z']
+
 gamma_range = list(np.arange(0, 1, 0.5))
-eta_range = list(np.arange(0.01, 0.31, 0.05))
-lambda_range = list(np.arange(0.6, 1.4, 0.2))
-colsample_range = list(np.arange(0.5, 1, 0.25))
+eta_range = [round(i, 2) for i in list(np.arange(0.01, 0.31, 0.05))]
+lambda_range = [round(i, 1) for i in list(np.arange(0.6, 1.4, 0.2))]
+colsample_range = list(np.arange(0.5, 1.25, 0.25))
 max_depth_range = list(np.arange(4, 7, 1))
 
 params_list = [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
 
-SCORERS = {'r2': make_scorer(r2_score), 'neg_mean_squared_error': make_scorer(mean_squared_error)}
-SCORERS_str = list(SCORERS.keys())
-
 if __name__ == "__main__":
-    main(test_csv, keep_cols, params_list)
+    train_and_run(main_csv, keep_cols, params_list, test_prop=0.2)
+    #quick_run(main_csv, keep_cols, test_prop=0.20)
 
 

@@ -145,6 +145,26 @@ def make_annual_csv(daily_csv):
     merged.to_csv(out_name)
 
     return print('Annual averages .csv @ %s' % out_name)
+
+
+def make_monthly_csv(daily_csv):
+    """
+        Creates an annual averaged NO2 observation csv from daily observations.
+        :param daily_csv: daily observation csv w/ station_id and mean_no2 columns
+        :return: monthly averaged mean_no2 values for each station
+        """
+    in_df = pd.read_csv(daily_csv)
+    grouped = in_df.groupby(['station_id', 'month']).first().reset_index()
+    avg = in_df.groupby(['station_id', 'month']).mean_no2.mean().reset_index()
+    in_dfll = grouped[['lat', 'long', 'station_id']]
+    merged = avg.merge(in_dfll, how='left', on='station_id')
+
+    out_dir = os.path.dirname(daily_csv)
+    out_name = out_dir + '\\no2_monthly_2019.csv'
+    merged.to_csv(out_name)
+
+    return print('Monthly averages .csv @ %s' % out_name)
+
 #################################################
 
 dems = r'C:\Users\xrnogueira\Documents\Data\3DEP'
@@ -154,6 +174,6 @@ in_csv = CSV_DIR + '\\clean_no2_daily_2019_ZandZr.csv'
 clean_daily = CSV_DIR + '\\clean_no2_daily_2019.csv'
 columns = ['Z']
 test_csv = CSV_DIR + '\\test.csv'
-build_master_csv(main_csv, in_csv, columns, out_csv=None, join_by=None)
+#build_master_csv(main_csv, in_csv, columns, out_csv=None, join_by=None)
 #make_annual_csv(clean_daily)
-
+make_monthly_csv(main_csv)
