@@ -14,7 +14,7 @@ from useful_functions import init_logger
 import logging
 
 
-def prep_input(in_data, in_cols, test_prop=0.15):
+def prep_input(in_data, in_cols, test_prop=0.10):
     """
     This function takes a master NO2 observation .csv, keeps/cleans only specified columns, and outputs an X and Y DF.
     :param in_csv: a master NO2 observations csv containing independent and dependent variable columns
@@ -77,7 +77,6 @@ def cross_cross(xtr, out_folder=None):
         out_folder = os.path.dirname(__file__)
 
     out_file = out_folder + '\\x_variables_cross_corrs.png'
-    logging.info('Figure will be saved @ %s' % out_file)
 
     # Compute a correlation matrix and convert to long-form
     corr_mat = xtr.corr().stack().reset_index(name="correlation")
@@ -141,7 +140,7 @@ def test_metrics(y_test, prediction):
     :param prediction: model prediction of the y variable
     :return:
     """
-    logging.info('--------- MODEL PERFORMANCE METRICS ---------')
+    logging.info('--------- MODEL TEST PERFORMANCE METRICS ---------')
     r2 = r2_score(y_test, prediction)
     mse = mean_squared_error(y_test, prediction)
     logging.info('R^2: %s' % r2)
@@ -250,7 +249,7 @@ def plot_hyperparams(scoring_df, param_grid, out_folder):
             param_cols.append(col_key)
             ax = sns.boxenplot(x=col_key, y='mean_train_score', data=scoring_df)
             ax.figure.savefig(hyp_dir + '\\%s.png' % param)
-            ax.fig.clf()
+            plt.cla()
     logging.info('Done. Plots made for each hyper-parameter @ %s' % hyp_dir)
     return
 
