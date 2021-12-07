@@ -17,7 +17,7 @@ import logging
 def prep_input(in_data, in_cols, test_prop):
     """
     This function takes a master NO2 observation .csv, keeps/cleans only specified columns, and outputs an X and Y DF.
-    :param in_csv: a master NO2 observations csv containing independent and dependent variable columns
+    :param in_data: a master NO2 observations csv converted to df containing independent and dependent variable columns
     :param in_cols: a list of strings containing valid column headers only
     :param test_prop: the proportion of the dataset (float, 0 to 1) that is reserved for testing
     :return: a list of len=2 containing a list w/ X and Y dataframes [0], and the train_test_split outputs [1]
@@ -50,6 +50,25 @@ def prep_input(in_data, in_cols, test_prop):
     out = [[xtr, ytr], [X_train, X_test, y_train, y_test]]
     logging.info('Done')
     return out
+
+
+def prep_output(main_folder):
+    folders = os.listdir(main_folder)
+    subs = [name for name in folders if os.path.isdir(os.path.join(main_folder, name))]
+    run_dirs = [i for i in subs if 'Run' in i.split[-1]]
+
+    num = 1
+    stop = False
+    while not stop:
+        dir_name = 'Model_Run%s' % num
+        if dir_name in run_dirs:
+            num += 1
+        else:
+            stop = True
+            out_dir = main_folder + '\\%s' % dir_name
+            os.makedirs(out_dir)
+
+    return out_dir
 
 
 def cross_cross(xtr, out_folder=None):
@@ -257,7 +276,8 @@ def plot_hyperparams(scoring_df, param_grid, out_folder):
 def train_and_run(in_csv, in_cols, params_list, test_prop):
     init_logger(__file__)
     logging.info('Inputs variables: %s' % in_cols)
-    out_folder = os.path.dirname(in_csv)
+    main_folder = os.path.dirname(in_csv)
+    out_folder = prep_output(main_folder)
     in_data = pd.read_csv(in_csv)
     in_data = in_data[in_cols]
 
@@ -318,7 +338,7 @@ gamma_range = list(np.arange(0, 1, 0.5))
 eta_range = [round(i, 2) for i in list(np.arange(0.01, 0.31, 0.05))]
 lambda_range = [round(i, 1) for i in list(np.arange(0.6, 1.4, 0.2))]
 colsample_range = list(np.arange(0.5, 1.25, 0.25))
-max_depth_range = list(np.arange(4, 7, 1))
+max_depth_range = list(np.arange(4, 9, 1))
 
 params_list = [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
 
