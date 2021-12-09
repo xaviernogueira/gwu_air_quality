@@ -105,13 +105,14 @@ def cross_cross(xtr, out_folder=None):
     return fig
 
 
-def train_xgb(X_train, y_train, param_grid, scoring='r2'):
+def train_xgb(X_train, y_train, param_grid, k, scoring='r2'):
     """
     Used GridCV to find optimal XGBoost parameters to fit the training dataset.
     :param X_train: dataframe or XDarray with independent variable training columns
     :param y_train: dataframe or XDarray with dependent variable training columns
     :param params_list: a list of lists of grid paramters to try. Must be of the form
     [gamma_range, eta_range, lambda_range, min_child_weight_range, max_depth_range]
+    :param k: Number of K-folds (integer, default passed in via train_and_test workflow is 5)
     :param scoring: a scikit-learn scorer string (default is r2)
     :return: a list containing [model.cv_results_, model.best_estimator_, model.best_params_, model.best_score_]
     """
@@ -121,7 +122,7 @@ def train_xgb(X_train, y_train, param_grid, scoring='r2'):
 
     # iterate over all parameter combinations and use the best performer to fit
     logging.info('Commencing GridSearch...')
-    xgb_iters = GridSearchCV(xgb_model, param_grid, cv=5, scoring=scoring, verbose=1, refit=True, return_train_score=True)
+    xgb_iters = GridSearchCV(xgb_model, param_grid, cv=k, scoring=scoring, verbose=1, refit=True, return_train_score=True)
     xgb_iters.fit(X_train, y_train)
 
     cv_results_df = pd.DataFrame.from_dict(xgb_iters.cv_results_)
@@ -254,7 +255,7 @@ def plot_hyperparams(scoring_df, param_grid, out_folder):
     return
 
 
-def train_and_run(in_csv, in_cols, params_list, test_prop):
+def train_and_run(in_csv, in_cols, params_list, test_prop, k=5):
     init_logger(__file__)
     logging.info('Inputs variables: %s' % in_cols)
     out_folder = os.path.dirname(in_csv)
@@ -273,7 +274,7 @@ def train_and_run(in_csv, in_cols, params_list, test_prop):
     X_df, Y_df = out[0]  # [0][0] is X dataframe, [0][1] is Y dataframe
     X_train, X_test, y_train, y_test = out[1]
     cross_cross(X_df, out_folder=out_folder)
-    out_list = train_xgb(X_train, y_train, param_grid, scoring='r2')
+    out_list = train_xgb(X_train, y_train, param_grid, k=k, scoring='r2')
     best_model = out_list[1]
 
     # plot model performance and feature importance
