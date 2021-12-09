@@ -1,6 +1,5 @@
 import logging
 import os
-
 import arcpy
 import numpy as np
 import pandas as pd
@@ -401,11 +400,11 @@ def raster_sample(in_table, sample_points, var_dict):
 
 
 #  ####### CHOOSE WHAT TO RUN ##########
-raster_funcs = False  # batch raster resample/aggreagte and project
+raster_funcs = True  # batch raster resample/aggreagte and project
 era5_extract = False  # run era5 extraction, must use aligned era5 points
 cru_extract = False  # run CRU extraction, we can use real points
 era_sl_extract = False  # run era5-sl extraction, we can use real points
-elevation_extract = True  # run elevation (Z) and elevation difference (Z_d) extraction
+elevation_extract = False  # run elevation (Z) and elevation difference (Z_d) extraction
 
 #  ####### DEFINE CONSTANT INPUTS ##########
 
@@ -419,10 +418,10 @@ era5_aligned_points = DIR + '\\no2_annual_2019_points_era5_aligned.shp'
 if raster_funcs:
     dem_folder = r'C:\Users\xrnogueira\Documents\Data\3DEP'
     pop_den = r'C:\Users\xrnogueira\Documents\Data\Population_density'
-    dem_for_ref = dem_folder + '\\USGS_1_n25w082.tif'
+    ras_for_reference = r'C:\Users\xrnogueira\Documents\Data\resampled_popden_old\agg5.tif'
     resampled_pop = r'C:\Users\xrnogueira\Documents\Data\resampled_popden'
     batch_resample_or_aggregate(in_folder=pop_den, cell_size=0.001, out_folder=resampled_pop, str_in='.tif', agg=True)
-    batch_raster_project(resampled_pop, spatial_ref=dem_for_ref, out_folder='', suffix='_p.tif')
+    batch_raster_project(resampled_pop, spatial_ref=ras_for_reference, out_folder='', suffix='_p.tif')
 
 if era5_extract:
     era5_ncf = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'

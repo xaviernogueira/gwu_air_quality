@@ -1,2 +1,64 @@
-INFO:root:Running plain bagel (no months/days) raster sampling.
-INFO:root:Pulling station point Z values...
+INFO:root:Aggregated population_usa18_-100_2019-07-01.tif
+INFO:root:Aggregated population_usa18_-110_2019-07-01.tif
+INFO:root:Aggregated population_usa18_-160_2019-07-01.tif
+INFO:root:Aggregated population_usa18_-170_2019-07-01.tif
+INFO:root:Aggregated population_usa18_-180_2019-07-01.tif
+INFO:root:Aggregated population_usa18_-90_2019-07-01.tif
+INFO:root:Aggregated population_usa28_-100_2019-07-01.tif
+INFO:root:Aggregated population_usa28_-110_2019-07-01.tif
+INFO:root:Aggregated population_usa28_-120_2019-07-01.tif
+INFO:root:Aggregated population_usa28_-130_2019-07-01.tif
+INFO:root:Aggregated population_usa28_-80_2019-07-01.tif
+INFO:root:Aggregated population_usa28_-90_2019-07-01.tif
+INFO:root:Aggregated population_usa38_-100_2019-07-01.tif
+INFO:root:Aggregated population_usa38_-110_2019-07-01.tif
+INFO:root:Aggregated population_usa38_-120_2019-07-01.tif
+INFO:root:Aggregated population_usa38_-130_2019-07-01.tif
+INFO:root:Aggregated population_usa38_-70_2019-07-01.tif
+INFO:root:Aggregated population_usa38_-80_2019-07-01.tif
+INFO:root:Aggregated population_usa38_-90_2019-07-01.tif
+INFO:root:Aggregated population_usa48_-100_2019-07-01.tif
+INFO:root:Aggregated population_usa48_-110_2019-07-01.tif
+INFO:root:Aggregated population_usa48_-120_2019-07-01.tif
+INFO:root:Aggregated population_usa48_-130_2019-07-01.tif
+INFO:root:Aggregated population_usa48_-140_2019-07-01.tif
+INFO:root:Aggregated population_usa48_177_2019-07-01.tif
+INFO:root:Aggregated population_usa58_-140_2019-07-01.tif
+INFO:root:Aggregated population_usa58_-150_2019-07-01.tif
+INFO:root:Aggregated population_usa58_-160_2019-07-01.tif
+INFO:root:Aggregated population_usa58_-170_2019-07-01.tif
+INFO:root:Aggregated population_usa68_-150_2019-07-01.tif
+INFO:root:Aggregated population_usa68_-160_2019-07-01.tif
+INFO:root:Aggregated population_usa68_-170_2019-07-01.tif
+INFO:root:Projected agg0.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg0_p.tif
+INFO:root:Projected agg1.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg1_p.tif
+INFO:root:Projected agg10.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg10_p.tif
+INFO:root:Projected agg11.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg11_p.tif
+INFO:root:Projected agg12.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg12_p.tif
+INFO:root:Projected agg13.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg13_p.tif
+INFO:root:Projected agg14.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg14_p.tif
+INFO:root:Projected agg15.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg15_p.tif
+INFO:root:Projected agg16.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg16_p.tif
+INFO:root:Projected agg17.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg17_p.tif
+INFO:root:Projected agg18.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg18_p.tif
+INFO:root:Projected agg19.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg19_p.tif
+INFO:root:Projected agg2.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg2_p.tif
+INFO:root:Projected agg20.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg20_p.tif
+INFO:root:Projected agg21.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg21_p.tif
+INFO:root:Projected agg22.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg22_p.tif
+INFO:root:Projected agg23.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg23_p.tif
+INFO:root:Projected agg24.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg24_p.tif
+INFO:root:Projected agg25.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg25_p.tif
+INFO:root:Projected agg26.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg26_p.tif
+INFO:root:Projected agg27.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg27_p.tif
+INFO:root:Projected agg28.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg28_p.tif
+INFO:root:Projected agg29.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg29_p.tif
+INFO:root:Projected agg3.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg3_p.tif
+INFO:root:Projected agg30.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg30_p.tif
+INFO:root:Projected agg31.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg31_p.tif
+INFO:root:Projected agg4.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg4_p.tif
+INFO:root:Projected agg5.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg5_p.tif
+INFO:root:Projected agg6.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg6_p.tif
+INFO:root:Projected agg7.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg7_p.tif
+INFO:root:Projected agg8.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg8_p.tif
+INFO:root:Projected agg9.tif -> C:\Users\xrnogueira\Documents\Data\resampled_popden\projected\agg9_p.tif
