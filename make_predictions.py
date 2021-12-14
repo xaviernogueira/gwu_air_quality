@@ -1,10 +1,14 @@
 import os
-
 import joblib
 import pandas as pd
 from useful_functions import init_logger
 from netcdf_functions import get_boundingbox
+from arcpy_functions import align_rasters
 import logging
+import matplotlib.pyplot as plt
+
+# import pyspatialml package
+from pyspatialml import Raster
 
 
 def bbox_poly(bbox, region, out_folder):

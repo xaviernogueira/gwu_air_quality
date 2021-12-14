@@ -399,8 +399,44 @@ def raster_sample(in_table, sample_points, var_dict):
     return out_csv
 
 
+def align_rasters(raster_dict, extent, region, out_folder):
+    """
+    A function that makes region clipped aligned rasters prepped for Pyspatialml
+    :param raster_dict: a dictionary of variable names (len<9) as keys and rasters as objects
+    :param extent: a rectangular shapefile to define processing extent
+    :param region: the name of the region (used for folder naming only)
+    :param out_folder: the top level folder in which to store city predictions
+    :return:
+    """
+    # prep output folder and and create sub folders
+    region_dir = out_folder + '\\%s' % region
+    logging.info('Making output folder %s' % region_dir)
+    clipped_dir = region_dir + '\\clipped_no_align'
+    aligned_dir = region_dir + '\\aligned_rasters'
+    dirs = [out_folder, region_dir, clipped_dir, aligned_dir]
+
+    for dir in dirs:
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
+    for i, var in enumerate(raster_dict.keys()):
+        ras = raster_dict[var]
+
+        # clip by extent polygon
+        out_ras = out_folder + '\\%s' % os.path.basename(ras)
+        arcpy.Clip_managment(ras, extent, clipped_dir)
+
+        # use snap raster to align cells in all clipping
+        if i == 0:
+            arcpy.env.snapRaster = out_ras
+
+        # update dictionary with clipped raster
+        raster_dict[var] = out_ras
+
+    return raster_dict
+
 #  ####### CHOOSE WHAT TO RUN ##########
-raster_funcs = True  # batch raster resample/aggreagte and project
+raster_funcs = False  # batch raster resample/aggreagte and project
 era5_extract = False  # run era5 extraction, must use aligned era5 points
 cru_extract = False  # run CRU extraction, we can use real points
 era_sl_extract = False  # run era5-sl extraction, we can use real points
