@@ -11,13 +11,14 @@ from sklearn.metrics import make_scorer
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from useful_functions import init_logger
+import joblib
 import logging
 
 
 def prep_input(in_data, in_cols, test_prop):
     """
     This function takes a master NO2 observation .csv, keeps/cleans only specified columns, and outputs an X and Y DF.
-    :param in_data: a master NO2 observations csv converted to df containing independent and dependent variable columns
+    :param in_csv: a master NO2 observations csv containing independent and dependent variable columns
     :param in_cols: a list of strings containing valid column headers only
     :param test_prop: the proportion of the dataset (float, 0 to 1) that is reserved for testing
     :return: a list of len=2 containing a list w/ X and Y dataframes [0], and the train_test_split outputs [1]
@@ -53,22 +54,34 @@ def prep_input(in_data, in_cols, test_prop):
 
 
 def prep_output(main_folder):
-    folders = os.listdir(main_folder)
-    subs = [name for name in folders if os.path.isdir(os.path.join(main_folder, name))]
-    run_dirs = [i for i in subs if 'Run' in i.split[-1]]
+    """
+    Folder organizing function. Creates sequential  main_folder/MODEL_RUNS/Run# folders to store results.
+    :param main_folder: the folder containing the input csv
+    :return: main_folder/MODEL_RUNS/Run#
+    """
+    runs_folder = main_folder + '\\MODEL_RUNS'
+    if not os.path.exists(runs_folder):
+        os.makedirs(runs_folder)
 
+    folders = os.listdir(runs_folder)
+    subs = [name for name in folders if os.path.isdir(os.path.join(runs_folder, name))]
+    run_dirs = [i for i in subs if 'Run' in i.split()[-1]]
+    out_dir = ''
     num = 1
     stop = False
     while not stop:
-        dir_name = 'Model_Run%s' % num
+        dir_name = 'Run%s' % num
         if dir_name in run_dirs:
             num += 1
         else:
             stop = True
-            out_dir = main_folder + '\\%s' % dir_name
+            out_dir = runs_folder + '\\%s' % dir_name
             os.makedirs(out_dir)
 
-    return out_dir
+    if out_dir != '':
+        return out_dir
+    else:
+        return logging.info('ERROR: Output folder not defined.')
 
 
 def cross_cross(xtr, out_folder=None):
@@ -124,23 +137,25 @@ def cross_cross(xtr, out_folder=None):
     return fig
 
 
-def train_xgb(X_train, y_train, param_grid, scoring='r2'):
+def train_xgb(X_train, y_train, param_grid, k, scoring='r2'):
     """
     Used GridCV to find optimal XGBoost parameters to fit the training dataset.
     :param X_train: dataframe or XDarray with independent variable training columns
     :param y_train: dataframe or XDarray with dependent variable training columns
     :param params_list: a list of lists of grid paramters to try. Must be of the form
     [gamma_range, eta_range, lambda_range, min_child_weight_range, max_depth_range]
+    :param k: Number of K-folds (integer, default passed in via train_and_test workflow is 5)
     :param scoring: a scikit-learn scorer string (default is r2)
     :return: a list containing [model.cv_results_, model.best_estimator_, model.best_params_, model.best_score_]
     """
-    # set up XGBoost regressor model
+    # set up XGBoost regression model
     xgb_model = xgb.XGBRegressor(eval_metric=r2_score, objective='reg:squarederror', booster='gbtree')
     xgb_model.fit(X_train, y_train)
 
     # iterate over all parameter combinations and use the best performer to fit
     logging.info('Commencing GridSearch...')
-    xgb_iters = GridSearchCV(xgb_model, param_grid, cv=5, scoring=scoring, verbose=1, refit=True, return_train_score=True)
+    logging.info('Using a %s-fold cross-validation' % k)
+    xgb_iters = GridSearchCV(xgb_model, param_grid, cv=k, scoring=scoring, verbose=1, refit=True, return_train_score=True)
     xgb_iters.fit(X_train, y_train)
 
     cv_results_df = pd.DataFrame.from_dict(xgb_iters.cv_results_)
@@ -273,7 +288,18 @@ def plot_hyperparams(scoring_df, param_grid, out_folder):
     return
 
 
-def train_and_run(in_csv, in_cols, params_list, test_prop):
+def train_and_run(in_csv, in_cols, params_list, test_prop, k=5):
+    """
+    Master function. Trains and tests an NO2 prediction XGBoost model using GridSearchCV
+    :param in_csv: path of the csv containing independent and dependent variable columns (string)
+    :param in_cols: independent variable column headers (list of strings)
+    :param params_list: a list of ranges to test for XGBoost model parameters in the following order:
+    [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
+    :param test_prop: the proportion of the dataset rows to exclude to final testing (float from 0 to 1)
+    :param k: the number of K-folds used for cross-validation (integer, default is 5)
+    :return: saves plots and logs @ csv_directory/MODEL_RUNS/Run#
+    """
+
     init_logger(__file__)
     logging.info('Inputs variables: %s' % in_cols)
     main_folder = os.path.dirname(in_csv)
@@ -293,8 +319,11 @@ def train_and_run(in_csv, in_cols, params_list, test_prop):
     X_df, Y_df = out[0]  # [0][0] is X dataframe, [0][1] is Y dataframe
     X_train, X_test, y_train, y_test = out[1]
     cross_cross(X_df, out_folder=out_folder)
-    out_list = train_xgb(X_train, y_train, param_grid, scoring='r2')
+    out_list = train_xgb(X_train, y_train, param_grid, k=k, scoring='r2')
     best_model = out_list[1]
+
+    # save model for predictions later
+    joblib.dump(best_model, out_folder + '\\best_estimator.pkl')
 
     # plot model performance and feature importance
     model_test(X_test, y_test, best_model, out_list[2], out_folder)
@@ -303,27 +332,6 @@ def train_and_run(in_csv, in_cols, params_list, test_prop):
 
     return
 
-
-def quick_run(in_csv, in_cols, test_prop):
-
-    # prep logger and data
-    init_logger(__file__)
-    logging.info('Inputs variables: %s' % in_cols)
-    in_data = pd.read_csv(in_csv)
-    in_data = in_data[in_cols]
-
-    out_folder = os.path.dirname(in_csv)
-    out = prep_input(in_data, keep_cols, test_prop=test_prop)
-    X_train, X_test, y_train, y_test = out[1]
-
-    model = xgb.XGBRegressor(eval_metric=r2_score, objective='reg:squarederror', booster='gbtree')
-    model.fit(X_train, y_train)
-    used_params = model.get_xgb_params
-    logging.info('Quick params: %s' % used_params)
-    #colsample_bytree=chosen_params['colsample_bytree'], eta=chosen_params['eta'], gamma=chosen_params['gamma'], max_depth=chosen_params['max_depth'], reg_lambda=chosen_params['reg_lambda']
-    model_test(X_test, y_test, model, used_params, out_folder)
-
-    return
 
 #  ########## SET XGBOOST PARAMETER RANGES ###########
 CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
@@ -343,7 +351,7 @@ max_depth_range = list(np.arange(4, 9, 1))
 params_list = [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
 
 if __name__ == "__main__":
-    train_and_run(main_csv, keep_cols, params_list, test_prop=0.2)
-    #quick_run(main_csv, keep_cols, test_prop=0.20)
+    train_and_run(test_csv, keep_cols, params_list, test_prop=0.2)
+
 
 

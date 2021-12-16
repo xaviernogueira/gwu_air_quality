@@ -1,12 +1,1 @@
 INFO:root:Inputs variables: ['mean_no2', 'weekend', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000', 's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r', 'Z']
-INFO:root:Param: gamma, testing: [0.0, 0.5]
-INFO:root:Param: eta, testing: [0.01, 0.06, 0.11, 0.16, 0.21, 0.26]
-INFO:root:Param: reg_lambda, testing: [0.6, 0.8, 1.0, 1.2]
-INFO:root:Param: colsample_bytree, testing: [0.5, 0.75, 1.0]
-INFO:root:Param: max_depth, testing: [4, 5, 6]
-INFO:root:Prepping input data
-INFO:root:Applying train/test 0.8/0.2 split...
-INFO:root:Done
-INFO:root:Creating independent variable cross-correlation plot...
-INFO:root:Cross-correlation figure saved @ C:\Users\xrnogueira\Documents\Data\NO2_stations\x_variables_cross_corrs.png
-INFO:root:Commencing GridSearch...

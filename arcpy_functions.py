@@ -1,6 +1,5 @@
 import logging
 import os
-
 import arcpy
 import numpy as np
 import pandas as pd
@@ -400,12 +399,48 @@ def raster_sample(in_table, sample_points, var_dict):
     return out_csv
 
 
+def align_rasters(raster_dict, extent, region, out_folder):
+    """
+    A function that makes region clipped aligned rasters prepped for Pyspatialml
+    :param raster_dict: a dictionary of variable names (len<9) as keys and rasters as objects
+    :param extent: a rectangular shapefile to define processing extent
+    :param region: the name of the region (used for folder naming only)
+    :param out_folder: the top level folder in which to store city predictions
+    :return:
+    """
+    # prep output folder and and create sub folders
+    region_dir = out_folder + '\\%s' % region
+    logging.info('Making output folder %s' % region_dir)
+    clipped_dir = region_dir + '\\clipped_no_align'
+    aligned_dir = region_dir + '\\aligned_rasters'
+    dirs = [out_folder, region_dir, clipped_dir, aligned_dir]
+
+    for dir in dirs:
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
+    for i, var in enumerate(raster_dict.keys()):
+        ras = raster_dict[var]
+
+        # clip by extent polygon
+        out_ras = out_folder + '\\%s' % os.path.basename(ras)
+        arcpy.Clip_managment(ras, extent, clipped_dir)
+
+        # use snap raster to align cells in all clipping
+        if i == 0:
+            arcpy.env.snapRaster = out_ras
+
+        # update dictionary with clipped raster
+        raster_dict[var] = out_ras
+
+    return raster_dict
+
 #  ####### CHOOSE WHAT TO RUN ##########
 raster_funcs = False  # batch raster resample/aggreagte and project
 era5_extract = False  # run era5 extraction, must use aligned era5 points
 cru_extract = False  # run CRU extraction, we can use real points
 era_sl_extract = False  # run era5-sl extraction, we can use real points
-elevation_extract = True  # run elevation (Z) and elevation difference (Z_d) extraction
+elevation_extract = False  # run elevation (Z) and elevation difference (Z_d) extraction
 
 #  ####### DEFINE CONSTANT INPUTS ##########
 
@@ -419,10 +454,10 @@ era5_aligned_points = DIR + '\\no2_annual_2019_points_era5_aligned.shp'
 if raster_funcs:
     dem_folder = r'C:\Users\xrnogueira\Documents\Data\3DEP'
     pop_den = r'C:\Users\xrnogueira\Documents\Data\Population_density'
-    dem_for_ref = dem_folder + '\\USGS_1_n25w082.tif'
+    ras_for_reference = r'C:\Users\xrnogueira\Documents\Data\resampled_popden_old\agg5.tif'
     resampled_pop = r'C:\Users\xrnogueira\Documents\Data\resampled_popden'
     batch_resample_or_aggregate(in_folder=pop_den, cell_size=0.001, out_folder=resampled_pop, str_in='.tif', agg=True)
-    batch_raster_project(resampled_pop, spatial_ref=dem_for_ref, out_folder='', suffix='_p.tif')
+    batch_raster_project(resampled_pop, spatial_ref=ras_for_reference, out_folder='', suffix='_p.tif')
 
 if era5_extract:
     era5_ncf = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
