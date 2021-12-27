@@ -406,7 +406,7 @@ def align_rasters(raster_dict, extent, region, out_folder):
     :param extent: a rectangular shapefile to define processing extent
     :param region: the name of the region (used for folder naming only)
     :param out_folder: the top level folder in which to store city predictions
-    :return:
+    :return: dictionary with raster names and cropped, aligned rasters
     """
     # prep output folder and and create sub folders
     region_dir = out_folder + '\\%s' % region

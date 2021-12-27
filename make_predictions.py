@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from pyspatialml import Raster
 import rasterio
+import tempfile
 
 
 def bbox_poly(bbox, region, out_folder):
@@ -74,7 +75,7 @@ def plot_month_rasters(cropped_raster_dict, month_index, out_folder):
         else:
             return logging.error('ERROR: Input raster %s is not single band and also does not contain 12 month bands' % name)
 
-        # set up colormap iterator and assign each layer a different colormap for plotting 
+        # set up colormap iterator and assign each layer a different colormap for plotting
         cmap_i += 1
         if cmap_i >= len(cmaps):
             cmap_i = 0
@@ -100,9 +101,10 @@ def plot_month_rasters(cropped_raster_dict, month_index, out_folder):
     plt.savefig(fig_name, dpi=300, bbox_inches='tight')
     logging.info('Done. Input raster plot for month %s saved @ %s' % (month, fig_name))
 
-    return stack
+    return stack, month
 
-def make_prediction_raster(saved_model, region='FULL'):
+
+def make_prediction_raster(raster_dict, saved_model, region='FULL'):
     init_logger(__file__)
 
     # create output folder
@@ -117,16 +119,31 @@ def make_prediction_raster(saved_model, region='FULL'):
         logging.info('Making prediction for region: %s' % region)
         bbox = get_boundingbox(region, output_as='boundingbox', state_override=False)
         bbox_shp = bbox_poly(bbox, region, out_folder)
+
     else:
+        # FIX THIS FIND A WAY TO ALIGN FOR CONTI USA
         logging.info('Making prediction for the continental USA')
-        # get raster intersections
+        bbox_shp = 'CHANGE THIS'
+
+    # get raster bbox cropped raster dictionary
+    crop_dict = align_rasters(raster_dict, bbox_shp, region, out_folder)
 
     # load model
     model = joblib.load(saved_model)
 
+    # iterate over months and make predictions
+    for m in range(1, 13):
+        month_stack, month = plot_month_rasters(crop_dict, m, out_folder)
+        logging.info('Making %s predictions' % month)
+        prediction = month_stack.predict(estimator=model)
 
+        # FROM SITE CHANGE THIS
+        out_ras = out_folder + '\\%s_pred.tif' % month[:3]
+        newstack = prediction.write(file_path=out_ras, nodata=-9999)
+        newstack.new_name.read()
+        newstack = None
 
-    return
+    return logging.info('Done. Prediction rasters and plots stored in %s' % out_folder)
 
 
 if __name__ == "__main__":
