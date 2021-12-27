@@ -4,6 +4,7 @@ import pandas as pd
 from useful_functions import init_logger
 from netcdf_functions import get_boundingbox
 from arcpy_functions import align_rasters
+from buffer_analysis import make_buffer_raster
 import logging
 import matplotlib.pyplot as plt
 
@@ -104,7 +105,7 @@ def plot_month_rasters(cropped_raster_dict, month_index, out_folder):
     return stack, month
 
 
-def make_prediction_raster(raster_dict, saved_model, region='FULL'):
+def make_prediction_raster(raster_dict, saved_model, vars_dict=None, region='FULL'):
     init_logger(__file__)
 
     # create output folder
@@ -128,6 +129,15 @@ def make_prediction_raster(raster_dict, saved_model, region='FULL'):
     # get raster bbox cropped raster dictionary
     crop_dict = align_rasters(raster_dict, bbox_shp, region, out_folder)
 
+    # make any buffer rasters necessary aligned to the stacked raster extents
+    if vars_dict is not None:
+        crop_dict_keys = list(crop_dict.keys())
+        v_names, r_paths = make_buffer_raster(vars_dict, crop_dict[crop_dict_keys[0]], out_folder)
+
+        # update crio_dict with newly generated buffer rasters
+        for i, v in enumerate(v_names):
+            crop_dict[v] = r_paths[i]
+
     # load model
     model = joblib.load(saved_model)
 
@@ -137,7 +147,7 @@ def make_prediction_raster(raster_dict, saved_model, region='FULL'):
         logging.info('Making %s predictions' % month)
         prediction = month_stack.predict(estimator=model)
 
-        # FROM SITE CHANGE THIS
+        # save raster
         out_ras = out_folder + '\\%s_pred.tif' % month[:3]
         newstack = prediction.write(file_path=out_ras, nodata=-9999)
         newstack.new_name.read()

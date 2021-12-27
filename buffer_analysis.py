@@ -107,6 +107,55 @@ def buffer_iters(points, max, step):
     return buff_dict
 
 
+def length_sum(data, buffer, dist, temp_files):
+    """
+    Takes a shapefile and calculates the associated buffer length sum values with each point's unique ID
+    :param data: a shapefile path (.shp)
+    :param buffer: a shapefile of buffers with unique point IDs
+    :param dist: the buffer distances used (for labeling)
+    :param temp_files: a folder to store temporary files
+    :return: a buffer shapefile with length sum values [0] and it's attribute table as a .csv [1], and a list of file
+    to delete [2]
+    """
+    inter_loc = temp_files + '\\inter_%s.shp' % dist
+    dissolved = inter_loc.replace('inter', 'dissolve')
+    pr = arcpy.SpatialReference('NAD 1983 Contiguous USA Albers')
+    dissolved_p = dissolved.replace('.shp', '_p.shp')
+    d_table = temp_files + '\\lengths_%s.csv' % dist
+
+    arcpy.Intersect_analysis([buffer, data], inter_loc, output_type='LINE')
+    arcpy.Dissolve_management(inter_loc, dissolved, dissolve_field=['station_id'])
+    arcpy.Project_management(dissolved, dissolved_p, out_coor_system=pr,
+                             transform_method='WGS_1984_(ITRF00)_To_NAD_1983')
+    arcpy.AddGeometryAttributes_management(dissolved_p, 'LENGTH', Length_Unit='KILOMETERS')
+    tableToCSV(dissolved_p, d_table)
+
+    del_files = [inter_loc, d_table]
+
+    return dissolved_p, d_table, del_files
+
+
+def zonal_buffer(data, buffer, dist, temp_files, method):
+    """
+    Takes a .tif raster and calculates the associated buffer zonal SUM or AVERAGE values with each point's unique ID
+    :param data: a shapefile path (.shp)
+    :param buffer: a shapefile of buffers with unique point IDs
+    :param dist: the buffer distances used (for labeling)
+    :param temp_files: a folder to store temporary files
+    :param method: must be 'SUM' or 'MEAN'
+    :return: a table with buffer data and unique point IDs [0], a list of files to delete [1]
+    """
+    temp_table = temp_files + '\\zonal_%s.dbf' % dist
+    d_table = temp_files + '\\sums_%s.csv' % dist
+
+    arcpy.sa.ZonalStatisticsAsTable(buffer, "station_id", data, out_table=temp_table, statistics_type=method)
+    tableToCSV(temp_table, d_table)
+
+    del_files = [temp_table, d_table]
+
+    return d_table, del_files
+
+
 def buffer_regression(vars_dict, buff_dict, no2_csv):
     """
     This functions applies all buffer intervals to all variable in the var_dict according to specified method.
@@ -161,40 +210,26 @@ def buffer_regression(vars_dict, buff_dict, no2_csv):
             # if a line shapefile, calculate length
             try:
                 if method == 'length_sum':
-                    inter_loc = temp_files + '\\inter_%s.shp' % dist
-                    dissolved = inter_loc.replace('inter', 'dissolve')
-                    pr = arcpy.SpatialReference('NAD 1983 Contiguous USA Albers')
-                    dissolved_p = dissolved.replace('.shp', '_p.shp')
-                    d_table = temp_files + '\\lengths_%s.csv' % dist
+                    dissolved_p, d_table, deletes = length_sum(data, buffer, dist, temp_files)
 
-                    arcpy.Intersect_analysis([buffer, data], inter_loc, output_type='LINE')
-                    arcpy.Dissolve_management(inter_loc, dissolved, dissolve_field=['station_id'])
-                    arcpy.Project_management(dissolved, dissolved_p, out_coor_system=pr,
-                                             transform_method='WGS_1984_(ITRF00)_To_NAD_1983')
-                    arcpy.AddGeometryAttributes_management(dissolved_p, 'LENGTH', Length_Unit='KILOMETERS')
-                    tableToCSV(dissolved_p, d_table)
                     t_df = pd.read_csv(d_table)
                     t_df.sort_values(by=['station_id'], inplace=True)
                     t_df.rename(columns={'LENGTH': col_head}, inplace=True)
 
                     # gather files for deletion
-                    del_files.append(inter_loc)
-                    del_files.append(d_table)
+                    for file in deletes:
+                        del_files.append(file)
 
                 # if a raster file, calculate zonal sum
                 elif method == 'zonal_sum':
-                    # MAKE SURE THIS PART WORKS TOO ONCE WE HAVE FB DATA READY
-                    temp_table = temp_files + '\\zonal_%s.dbf' % dist
-                    d_table = temp_files + '\\sums_%s.csv' % dist
+                    d_table, deletes = zonal_buffer(data, buffer, dist, temp_files, method)
 
-                    arcpy.sa.ZonalStatisticsAsTable(buffer, "station_id", data, out_table=temp_table, statistics_type="SUM")
-                    tableToCSV(temp_table, d_table)
                     t_df = pd.read_csv(d_table)
                     t_df.rename(columns={'SUM': col_head}, inplace=True)
 
                     # gather files for deletion
-                    del_files.append(temp_table)
-                    del_files.append(d_table)
+                    for file in deletes:
+                        del_files.append(file)
 
                 else:
                     print('Method %s is not valid, choose from [length_sum, zonal_sum]' % method)
@@ -320,6 +355,113 @@ def add_buffer_data_to_no2(no2_csv, buff_folder, var_dict, out_csv=''):
     no2_df.to_csv(out_csv)
     print('Output .csv: %s' % out_csv)
     return out_csv
+
+
+def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None):
+    """
+    This function creates a raster of artitrary shape/extent where each cell is assigned a value extract from a buffer
+    :param vars_dict: dictionary with variable names (str) as keys storing lists containing the following inputs:
+    [*variable layer path* (i.e., .shp or .tif file), *buffer distances to use in meters* ex: [1400, 8000]]
+    :param copy_raster: a raster to match the extent and resolution of
+    :param out_folder: directory path to store output GeoTIFFs
+    :param method_override: (default is None) overrides methods via a list of the same length of vars_dict.keys()
+    items must be string 'length_sum', 'point_sum', 'zonal_sum', or 'zonal_mean' (NOT COMPLETED FUNCTIONALITY)
+    :return: a list of lists of the form [[*variable name* (with buff_distance)], [*raster paths*]]. Indexes are aligned.
+    """
+
+    # initiate logger and arcpy environment settings
+    arcpy.env.overwriteOutput = True
+    init_logger(__file__)
+
+    if arcpy.CheckExtension('Spatial') == 'Available':
+        arcpy.CheckOutExtension('Spatial')
+    else:
+        return logging.error('ERROR: Cant check out spatial liscence')
+
+    # set up folders
+    del_files = []
+
+    if not os.path.exists(out_folder):
+        os.makedirs(out_folder)
+
+    temp_files = out_folder + '\\temp_files'
+    if not os.path.exists(temp_files):
+        os.makedirs(temp_files)
+
+    # make a blank raster of the same extent as the input raster
+    in_raster = arcpy.sa.Raster(copy_raster)
+    blank_raster = in_raster * 0 + 1
+    blank_tif = temp_files + '\\blank.tif'
+    blank_raster.save(blank_tif)
+
+    # convert the blank raster to points
+    points = temp_files + '\\points.shp'
+    arcpy.RasterToPoint_conversion(blank_tif, points)
+
+    # iterate over variables
+    out_lists = [[], []]
+    for i, name in enumerate(list(vars_dict.keys())):
+        data, dists = vars_dict[name]
+        out_lists[0].append(name)
+
+        # establish method for buffer values
+        if method_override is None:
+            if data[-4:] == '.shp':
+                method = 'length_sum'
+            elif data[-4:] == '.tif':
+                method = 'zonal_sum'
+            else:
+                return print('ERROR: data is not a shapefile or a GeoTiff')
+        elif isinstance(method_override, list):
+            method = method_override[i]
+        else:
+            return print('ERROR: method_orverride is specified but is not a list! Delete the parameter to return to default)')
+
+        for dist in dists:
+            buffer = temp_files + '\\%s_full raster_buff'
+            arcpy.analysis.Buffer(points, buffer, buffer_distance_or_field='%s Meters' % int(dist))
+            error_msg = 'ERROR: method_override was used incorrectly, please use a valid method name'
+
+            if 'zonal' in method:
+                if 'sum' in method:
+                    meth_str = 'SUM'
+                    d_table, deletes = zonal_buffer(data, buffer, dist, temp_files, meth_str)
+                elif 'mean' in method:
+                    meth_str = 'MEAN'
+                    d_table, deletes = zonal_buffer(data, buffer, dist, temp_files, meth_str)
+                else:
+                    return logging.error(error_msg)
+
+            elif 'length' in method:
+                dissolved_p, d_table, deletes = length_sum(data, buffer, dist, temp_files)
+
+            elif 'point' in  method:
+                print('ADD POINT FUNCTION AFTER TESTING')
+                deletes = []
+
+            else:
+                return logging.error(error_msg)
+            
+            for file in deletes:
+                del_files.append(file)
+
+            # join buffer values to points by unique ID
+
+            # convert points to raster using buffer values
+            buffer_raster = ''
+
+            # save raster path to output sub list
+            out_lists[1].append(buffer_raster)
+
+        # delete extra files
+        for file in del_files:
+            try:
+                arcpy.Delete_management(file)
+            except arcpy.ExecuteError:
+                logging.info('Could not delete %s' % file)
+
+    return out_lists
+
 
 
 #  ------------- INPUTS ------------------
