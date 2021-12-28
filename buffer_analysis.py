@@ -41,7 +41,7 @@ def tableToCSV(input_table, csv_filepath, fld_to_remove_override=None, keep_fiel
             try:
                 fld_names.remove(field)
             except:
-                "Can't delete field: %s" % field
+                print("Can't delete field: %s" % field)
 
     elif len(keep_fields) > 0:
         fld_names = [i for i in fld_names if i in keep_fields]
