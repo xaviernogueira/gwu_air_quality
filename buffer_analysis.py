@@ -441,7 +441,7 @@ def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None)
 
             else:
                 return logging.error(error_msg)
-            
+
             for file in deletes:
                 del_files.append(file)
 
@@ -461,7 +461,6 @@ def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None)
                 logging.info('Could not delete %s' % file)
 
     return out_lists
-
 
 
 #  ------------- INPUTS ------------------

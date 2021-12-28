@@ -227,7 +227,21 @@ def model_test(X_test, y_test, best_estimator, best_params, out_folder):
     return plt.show()
 
 
-def plot_feature_importance(best_estimator, out_folder):
+def shap_analytics(model, X_train, out_folder):
+    import shap
+    shap_values = shap.TreeExplainer(model).shap_values(X_train)
+
+    # plot both dot violin and bar plots to track feature importance
+    fig1 = shap.summary_plot(shap_values, X_train)
+    fig2 = shap.summary_plot(shap_values, X_train, plot_type="bar")
+
+    fig1.save(out_folder + '\\SHAP_dot_plot.png')
+    fig2.save(out_folder + '\\SHAP_bar_plot.png')
+
+    return logging.info('SHAP feature importance plots saved @ %s' % out_folder)
+
+
+def plot_feature_importance(best_estimator, X_train, out_folder):
     """
     Plots feature importance for a model
     :param best_estimator: the best_estimator_ model selected during GridSearch (out_list[1]) or other model
@@ -249,7 +263,10 @@ def plot_feature_importance(best_estimator, out_folder):
     plt.savefig(fig_name, dpi=300, bbox_inches='tight')
     logging.info('Done. Plot saved @ %s' % fig_name)
 
-    return plt.show()
+    # save SHAP feature importance plots
+    shap_analytics(model, X_train, out_folder)
+
+    return logging.info('Done. All feature importance plots saved @ %s' % out_folder)
 
 
 def plot_hyperparams(scoring_df, param_grid, out_folder):
@@ -327,7 +344,7 @@ def train_and_run(in_csv, in_cols, params_list, test_prop, k=5):
 
     # plot model performance and feature importance
     model_test(X_test, y_test, best_model, out_list[2], out_folder)
-    plot_feature_importance(best_model, out_folder)
+    plot_feature_importance(best_model, X_train, out_folder)
     plot_hyperparams(out_list[0], param_grid, out_folder)
 
     return
