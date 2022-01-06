@@ -435,6 +435,7 @@ def align_rasters(raster_dict, extent, region, out_folder):
 
     return raster_dict
 
+
 #  ####### CHOOSE WHAT TO RUN ##########
 raster_funcs = False  # batch raster resample/aggreagte and project
 era5_extract = False  # run era5 extraction, must use aligned era5 points
@@ -496,7 +497,11 @@ if era_sl_extract:
 if elevation_extract:
     dem_dir = r'C:\Users\xrnogueira\Documents\Data\3PED'
     fine_dem = dem_dir + '\\ETOPO1_Ice_g_geotiff.tif'
-    relative_dem = dem_dir + '\\z_rel.tif'  # Make again (ugh)
+    relative_dem = dem_dir + '\\z_rel.tif'
     var_dict = {'Z': fine_dem}
     raster_sample(no2_stations_daily, actual_sample_points, var_dict)
 
+# inputs for running locally
+DIR = r'C:\Users\xrnogueira\Documents\Data\ERA5\ERA5_rasters'
+OUT = r'C:\Users\xrnogueira\Documents\Data\usa_rasters_0p001'
+#batch_resample_or_aggregate(DIR, cell_size=0.001, out_folder=OUT, str_in='.tif', agg=False)

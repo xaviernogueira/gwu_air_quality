@@ -346,7 +346,7 @@ def extract_vals_from_cdf(stations_csv, var_name, monthly_dir, interval='month',
 DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_tropomi'
 LATLONG = DIR + '\\LatLonGrid.ncf'
 TROP_2019 = DIR + '\\Tropomi_NO2_griddedon0p01grid_2019_QA75.ncf'
-NO2_AND_LATLONG = DIR + '\\Tropomi_NO2_latlon_griddedon0.01grid_2019_QA75.ncf'
+NO2_AND_LATLONG = DIR + '\\by_month_wcoors\\Tropomi_NO2_griddedon0.01grid_2019_QA75.ncf'
 ERA5 = r'C:\Users\xrnogueira\Documents\Data\ERA5\adaptor.mars.internal-1636309996.9508529-3992-17-5d68984c-35e3-4010-9da7-aaf52d0d05a6.nc'
 IN_LIST = [LATLONG, TROP_2019]
 TEST_CRU = r'C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Tair\Tair_WFDE5_CRU_201901_v2.0.nc'
@@ -355,12 +355,12 @@ TEST_CRU = r'C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Tair\Tair_WFDE5_CR
 netcdf_months = r'C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific_humidity'
 no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
 #cdf_files = os.listdir(netcdf_months)
-#inputs = [netcdf_months + '\\' + i for i in cdf_files if i[-2:] == 'nc']
+
 
 
 #################################################
 def main():
-    #ncf_metadata(inputs)
+    ncf_metadata(NO2_AND_LATLONG)
     #convert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
     #extract_vals_from_tropomi(no2_stations_daily, netcdf_months, LATLONG, year=2019)
     return

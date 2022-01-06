@@ -139,7 +139,6 @@ def leave_one_out_kriging(month_dict):
         # implement leave one out method
         for i in list(range(0, X.shape[0])):
             print('Index = %s' % i)
-            #out_X = np.expand_dims(X.iloc[i], axis=1).T
             out_X = X.iloc[lambda X: X.index == i]
             out_Y = Y[i]
             out_latlon = np.expand_dims(lat_lon[i], axis=1).T

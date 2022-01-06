@@ -224,7 +224,7 @@ def model_test(X_test, y_test, best_estimator, best_params, out_folder):
     plt.savefig(fig_name, dpi=300, bbox_inches='tight')
     logging.info('Done. Prediction plot saved @ %s' % fig_name)
 
-    return plt.show()
+    return
 
 
 def shap_analytics(model, X_train, out_folder):
@@ -232,11 +232,14 @@ def shap_analytics(model, X_train, out_folder):
     shap_values = shap.TreeExplainer(model).shap_values(X_train)
 
     # plot both dot violin and bar plots to track feature importance
+    plt.tight_layout()
     fig1 = shap.summary_plot(shap_values, X_train)
-    fig2 = shap.summary_plot(shap_values, X_train, plot_type="bar")
-
     fig1.save(out_folder + '\\SHAP_dot_plot.png')
+    plt.cla()
+
+    fig2 = shap.summary_plot(shap_values, X_train, plot_type="bar")
     fig2.save(out_folder + '\\SHAP_bar_plot.png')
+    plt.cla()
 
     return logging.info('SHAP feature importance plots saved @ %s' % out_folder)
 
@@ -262,9 +265,10 @@ def plot_feature_importance(best_estimator, X_train, out_folder):
     fig_name = out_folder + '\\model_feature_importance.png'
     plt.savefig(fig_name, dpi=300, bbox_inches='tight')
     logging.info('Done. Plot saved @ %s' % fig_name)
+    plt.cla()
 
     # save SHAP feature importance plots
-    shap_analytics(model, X_train, out_folder)
+    #shap_analytics(model, X_train, out_folder)
 
     return logging.info('Done. All feature importance plots saved @ %s' % out_folder)
 
@@ -317,10 +321,15 @@ def train_and_run(in_csv, in_cols, params_list, test_prop, k=5):
     :return: saves plots and logs @ csv_directory/MODEL_RUNS/Run#
     """
 
-    init_logger(__file__)
-    logging.info('Inputs variables: %s' % in_cols)
+    # set up folders
     main_folder = os.path.dirname(in_csv)
     out_folder = prep_output(main_folder)
+
+    # initiate logging in the model run folder
+    init_logger(__file__, log_name=out_folder + '\\run_log.log')
+    logging.info('Inputs variables: %s' % in_cols)
+
+    # pull in data
     in_data = pd.read_csv(in_csv)
     in_data = in_data[in_cols]
 
@@ -331,33 +340,45 @@ def train_and_run(in_csv, in_cols, params_list, test_prop, k=5):
     for i in param_grid.keys():
         logging.info('Param: %s, testing: %s' % (i, param_grid[i]))
 
-    # use GridSearch CV to tune model hyper-parameters
+    # prepare model training inputs
     out = prep_input(in_data, in_cols, test_prop)
     X_df, Y_df = out[0]  # [0][0] is X dataframe, [0][1] is Y dataframe
     X_train, X_test, y_train, y_test = out[1]
+    X_train.to_csv(out_folder + '\\X_train.csv')
     cross_cross(X_df, out_folder=out_folder)
+
+    # use GridSearch CV to tune model hyper-parameters
     out_list = train_xgb(X_train, y_train, param_grid, k=k, scoring='r2')
     best_model = out_list[1]
-
-    # save model for predictions later
-    joblib.dump(best_model, out_folder + '\\best_estimator.pkl')
 
     # plot model performance and feature importance
     model_test(X_test, y_test, best_model, out_list[2], out_folder)
     plot_feature_importance(best_model, X_train, out_folder)
     plot_hyperparams(out_list[0], param_grid, out_folder)
 
+    # save model for predictions later
+    joblib.dump(best_model, out_folder + '\\best_estimator.pkl')
+
     return
 
 
 #  ########## SET XGBOOST PARAMETER RANGES ###########
 CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
-main_csv = CSV_DIR + '\\master_no2_daily.csv'
-test_csv = CSV_DIR + '\\master_no2_daily_test_500_rows.csv'
+main_csv = CSV_DIR + '\\master_monthly_no2_jan4.csv'
+krig_csv = CSV_DIR + '\\master_monthly_no2_jan4_rk.csv'
+#test_csv = CSV_DIR + '\\master_no2_daily_test_500_rows.csv'
 
 
-keep_cols = ['mean_no2', 'weekend', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
+keep_cols1 = ['mean_no2',  'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
                  's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r', 'Z']
+keep_cols2 = ['mean_no2', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
+                 's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r', 'Z', 'no2_krig']
+
+#drop_cols = ['u10', 'v10', 'swvl1', 'u100', 'v100']
+
+#keep_cols1 = [i for i in keep_cols1 if i not in drop_cols]
+#keep_cols2 = [i for i in keep_cols2 if i not in drop_cols]
+
 
 gamma_range = list(np.arange(0, 1, 0.5))
 eta_range = [round(i, 2) for i in list(np.arange(0.01, 0.31, 0.05))]
@@ -368,7 +389,8 @@ max_depth_range = list(np.arange(4, 9, 1))
 params_list = [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
 
 if __name__ == "__main__":
-    train_and_run(test_csv, keep_cols, params_list, test_prop=0.2)
+    train_and_run(main_csv, keep_cols1, params_list, test_prop=0.2)
+    train_and_run(krig_csv, keep_cols2, params_list, test_prop=0.2)
 
 
 

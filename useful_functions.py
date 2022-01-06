@@ -8,10 +8,18 @@ import logging
 import os
 
 
-def init_logger(filename):
-    """Initializes logger w/ same name as python file"""
+def init_logger(filename, log_name=None):
+    """Initializes logger w/ same name as python file or a specified name if log_name is given a valid path (.log)"""
 
-    logging.basicConfig(filename=os.path.basename(filename).replace('.py', '.log'), filemode='w', level=logging.INFO)
+    if log_name is not None and log_name[-4:] == '.log':
+        if os.path.exists(os.path.dirname(log_name)):
+            name = log_name
+        else:
+            return print('ERROR: Logger cannot be initiated @ %s' % log_name)
+    else:
+        name = os.path.basename(filename).replace('.py', '.log')
+
+    logging.basicConfig(filename=name, filemode='w', level=logging.INFO)
     stderr_logger = logging.StreamHandler()
     stderr_logger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
     logging.getLogger().addHandler(stderr_logger)

@@ -356,6 +356,17 @@ def add_buffer_data_to_no2(no2_csv, buff_folder, var_dict, out_csv=''):
     print('Output .csv: %s' % out_csv)
     return out_csv
 
+def make_buffer_rasters(in_raster, out_dir, data_files, buffer_dists, methods):
+    """
+    This function creates a new raster with the same extent of an input raster assigning
+    :param in_raster:
+    :param out_dir:
+    :param data_files:
+    :param buffer_dists:
+    :param methods:
+    :return:
+    """
+    return
 
 def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None):
     """
@@ -483,7 +494,7 @@ def main():
     #buff_dict = buffer_iters(POINTS, 3100, 100)
     #out = buffer_regression(vars_dict, buff_dict, NO2_CSV)
     #plot_decay_curves(out[0], out[1], input_vars=None, input_buffs=None)
-    add_buffer_data_to_no2(NO2_DAILY, NO2_DIR, dist_dict, out_csv=NO2_DAILY.replace('.csv', '_popden.csv'))
+    #add_buffer_data_to_no2(NO2_DAILY, NO2_DIR, dist_dict, out_csv=NO2_DAILY.replace('.csv', '_popden.csv'))
 
 
 if __name__ == "__main__":
