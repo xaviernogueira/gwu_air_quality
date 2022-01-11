@@ -232,10 +232,10 @@ def shap_analytics(model, X_train, out_folder):
     shap_values = shap.TreeExplainer(model).shap_values(X_train)
 
     # plot both dot violin and bar plots to track feature importance
-    plt.tight_layout()
-    fig1 = shap.summary_plot(shap_values, X_train)
-    fig1.save(out_folder + '\\SHAP_dot_plot.png')
-    plt.cla()
+    #plt.tight_layout()
+    #fig1 = shap.summary_plot(shap_values, X_train)
+    #fig1.save(out_folder + '\\SHAP_dot_plot.png')
+    #plt.cla()
 
     fig2 = shap.summary_plot(shap_values, X_train, plot_type="bar")
     fig2.save(out_folder + '\\SHAP_bar_plot.png')
@@ -373,11 +373,12 @@ keep_cols1 = ['mean_no2',  'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u10
                  's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r', 'Z']
 keep_cols2 = ['mean_no2', 'sp', 'swvl1', 't2m', 'tp', 'u10', 'v10', 'blh', 'u100', 'v100', 'p_roads_1000',
                  's_roads_1700', 's_roads_3000', 'tropomi', 'pod_den_1100', 'Z_r', 'Z', 'no2_krig']
+keep_cols3 = ['mean_no2', 'sp', 't2m', 'tp', 'blh', 'tropomi', 'Z_r', 'Z']
 
-#drop_cols = ['u10', 'v10', 'swvl1', 'u100', 'v100']
+drop_cols = ['u10', 'v10', 'swvl1', 'u100', 'v100', 'mean_no2']
 
-#keep_cols1 = [i for i in keep_cols1 if i not in drop_cols]
-#keep_cols2 = [i for i in keep_cols2 if i not in drop_cols]
+keep_cols1 = [i for i in keep_cols1 if i not in drop_cols]
+keep_cols2 = [i for i in keep_cols2 if i not in drop_cols]
 
 
 gamma_range = list(np.arange(0, 1, 0.5))
@@ -389,8 +390,16 @@ max_depth_range = list(np.arange(4, 9, 1))
 params_list = [gamma_range, eta_range, lambda_range, colsample_range, max_depth_range]
 
 if __name__ == "__main__":
-    train_and_run(main_csv, keep_cols1, params_list, test_prop=0.2)
-    train_and_run(krig_csv, keep_cols2, params_list, test_prop=0.2)
+    #train_and_run(main_csv, keep_cols1, params_list, test_prop=0.2)
+    #train_and_run(krig_csv, keep_cols2, params_list, test_prop=0.2)
+    train_and_run(main_csv, keep_cols3, params_list, test_prop=0.2)
+
+    # for hardcoding SHAP
+    #o_fol = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\MODEL_RUNS\Run3'
+    #X_train = pd.read_csv(o_fol + '\\X_train.csv')[keep_cols1]
+    #saved_model = o_fol + '\\best_estimator.pkl'
+    #model = joblib.load(saved_model)
+    #shap_analytics(model, X_train, o_fol)
 
 
 

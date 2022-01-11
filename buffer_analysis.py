@@ -135,7 +135,7 @@ def length_sum(data, buffer, dist, temp_files):
     return dissolved_p, d_table, del_files
 
 
-def zonal_buffer(data, buffer, dist, temp_files, method):
+def zonal_buffer(data, buffer, dist, temp_files, method, id='station_id'):
     """
     Takes a .tif raster and calculates the associated buffer zonal SUM or AVERAGE values with each point's unique ID
     :param data: a shapefile path (.shp)
@@ -148,7 +148,7 @@ def zonal_buffer(data, buffer, dist, temp_files, method):
     temp_table = temp_files + '\\zonal_%s.dbf' % dist
     d_table = temp_files + '\\sums_%s.csv' % dist
 
-    arcpy.sa.ZonalStatisticsAsTable(buffer, "station_id", data, out_table=temp_table, statistics_type=method)
+    arcpy.sa.ZonalStatisticsAsTable(buffer, id, data, out_table=temp_table, statistics_type=method)
     tableToCSV(temp_table, d_table)
 
     del_files = [temp_table, d_table]
@@ -356,19 +356,8 @@ def add_buffer_data_to_no2(no2_csv, buff_folder, var_dict, out_csv=''):
     print('Output .csv: %s' % out_csv)
     return out_csv
 
-def make_buffer_rasters(in_raster, out_dir, data_files, buffer_dists, methods):
-    """
-    This function creates a new raster with the same extent of an input raster assigning
-    :param in_raster:
-    :param out_dir:
-    :param data_files:
-    :param buffer_dists:
-    :param methods:
-    :return:
-    """
-    return
 
-def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None):
+def make_buffer_table(vars_dict, copy_raster, out_folder, method_override=None):
     """
     This function creates a raster of artitrary shape/extent where each cell is assigned a value extract from a buffer
     :param vars_dict: dictionary with variable names (str) as keys storing lists containing the following inputs:
@@ -377,17 +366,18 @@ def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None)
     :param out_folder: directory path to store output GeoTIFFs
     :param method_override: (default is None) overrides methods via a list of the same length of vars_dict.keys()
     items must be string 'length_sum', 'point_sum', 'zonal_sum', or 'zonal_mean' (NOT COMPLETED FUNCTIONALITY)
-    :return: a list of lists of the form [[*variable name* (with buff_distance)], [*raster paths*]]. Indexes are aligned.
+    :return: a list storing the paths to csvs containing buffer values and a unique point id.
     """
 
     # initiate logger and arcpy environment settings
     arcpy.env.overwriteOutput = True
     init_logger(__file__)
+    logging.info('Making buffer variable rasters....')
 
     if arcpy.CheckExtension('Spatial') == 'Available':
         arcpy.CheckOutExtension('Spatial')
     else:
-        return logging.error('ERROR: Cant check out spatial liscence')
+        return logging.error('ERROR: Cant check out spatial licence')
 
     # set up folders
     del_files = []
@@ -408,12 +398,14 @@ def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None)
     # convert the blank raster to points
     points = temp_files + '\\points.shp'
     arcpy.RasterToPoint_conversion(blank_tif, points)
+    logging.info('Blank raster made and converted to points...')
 
+    # make list to store output tables
     # iterate over variables
-    out_lists = [[], []]
+    out_list = []
     for i, name in enumerate(list(vars_dict.keys())):
+        logging.info('Variable: %s' % name)
         data, dists = vars_dict[name]
-        out_lists[0].append(name)
 
         # establish method for buffer values
         if method_override is None:
@@ -422,47 +414,43 @@ def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None)
             elif data[-4:] == '.tif':
                 method = 'zonal_sum'
             else:
-                return print('ERROR: data is not a shapefile or a GeoTiff')
+                return logging.error('ERROR: data is not a shapefile or a GeoTiff')
         elif isinstance(method_override, list):
             method = method_override[i]
         else:
-            return print('ERROR: method_orverride is specified but is not a list! Delete the parameter to return to default)')
+            return logging.error('ERROR: method_orverride is specified but is not a list! Delete the parameter to return to default)')
 
         for dist in dists:
-            buffer = temp_files + '\\%s_full raster_buff'
+            logging.info('Using buffer distance %sm' % dist)
+            buffer = temp_files + '\\%s_full_raster_buff.shp' % dist
             arcpy.analysis.Buffer(points, buffer, buffer_distance_or_field='%s Meters' % int(dist))
             error_msg = 'ERROR: method_override was used incorrectly, please use a valid method name'
 
             if 'zonal' in method:
                 if 'sum' in method:
                     meth_str = 'SUM'
-                    d_table, deletes = zonal_buffer(data, buffer, dist, temp_files, meth_str)
+                    d_table, deletes = zonal_buffer(data, buffer, dist, out_folder, meth_str, id='pointid')
                 elif 'mean' in method:
                     meth_str = 'MEAN'
-                    d_table, deletes = zonal_buffer(data, buffer, dist, temp_files, meth_str)
+                    d_table, deletes = zonal_buffer(data, buffer, dist, out_folder, meth_str)
                 else:
                     return logging.error(error_msg)
 
             elif 'length' in method:
-                dissolved_p, d_table, deletes = length_sum(data, buffer, dist, temp_files)
+                dissolved_p, d_table, deletes = length_sum(data, buffer, dist, out_folder)
 
-            elif 'point' in  method:
-                print('ADD POINT FUNCTION AFTER TESTING')
+            elif 'point' in method:
+                logging.info('ADD POINT FUNCTION AFTER TESTING')
                 deletes = []
 
             else:
                 return logging.error(error_msg)
 
+            # set up files for deletion and save data tables to an out_list
             for file in deletes:
                 del_files.append(file)
 
-            # join buffer values to points by unique ID
-
-            # convert points to raster using buffer values
-            buffer_raster = ''
-
-            # save raster path to output sub list
-            out_lists[1].append(buffer_raster)
+            out_list.append(d_table)
 
         # delete extra files
         for file in del_files:
@@ -471,11 +459,13 @@ def make_buffer_raster(vars_dict, copy_raster, out_folder, method_override=None)
             except arcpy.ExecuteError:
                 logging.info('Could not delete %s' % file)
 
-    return out_lists
+    return out_list
+
+
+
 
 
 #  ------------- INPUTS ------------------
-ROADS_DIR = r'C:\Users\xrnogueira\Documents\Data\Road data'
 POP_DEN = r'C:\Users\xrnogueira\Documents\Data\usa_rasters_0p001\popden.tif'
 NO2_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
 POINTS = NO2_DIR + '\\no2_annual_2019_points.shp'
@@ -483,18 +473,31 @@ NO2_CSV = NO2_DIR + '\\no2_annual_2019.csv'
 NO2_DAILY = NO2_DIR + '\\clean_no2_daily_2019.csv'
 
 # set up inputs for buffer analysis functions
-var_names = ['pod_den']
-gis_files = [POP_DEN]
-methods = ['zonal_sum']
+road_dir = r'C:\Users\xrnogueira\Documents\Data\USGS_roads'
+var_names = ['p_roads', 's_roads']
+gis_files = [road_dir + '\\primary_prj.shp', road_dir + '\\secondary_prj.shp']
+methods = ['length_sum', length_sum]
 dist_dict = {'pod_den': [1100]}
+
+
+f_vars_dict = {'p_roads': [road_dir + '\\primary_prj.shp', [1000]], 's_roads': [road_dir + '\\secondary_prj.shp', [1700, 3000]]}
+copy_raster = r'C:\Users\xrnogueira\Documents\Data\Chicago_prediction\temp_files\blank_chi.tif'
+out_folder = r'C:\Users\xrnogueira\Documents\Data\Chicago_prediction'
 
 
 def main():
     #vars_dict = make_vars_dict(var_names, gis_files, methods)
     #buff_dict = buffer_iters(POINTS, 3100, 100)
     #out = buffer_regression(vars_dict, buff_dict, NO2_CSV)
+    #print(out)
     #plot_decay_curves(out[0], out[1], input_vars=None, input_buffs=None)
-    #add_buffer_data_to_no2(NO2_DAILY, NO2_DIR, dist_dict, out_csv=NO2_DAILY.replace('.csv', '_popden.csv'))
+    #add_buffer_data_to_no2(NO2_DAILY, NO2_DIR, vars_dict, out_csv=NO2_DAILY.replace('.csv', '_roads.csv'))
+    #make_buffer_table(f_vars_dict, copy_raster, out_folder, method_override=None)
+
+    buffers = [out_folder + '\\points_%s.shp' % i for i in [1000, 1700, 3000]]
+    length_sum(gis_files[0], buffers[0], 1000, out_folder)
+    length_sum(gis_files[1], buffers[1], 1700, out_folder)
+    length_sum(gis_files[1], buffers[2], 3000, out_folder)
 
 
 if __name__ == "__main__":

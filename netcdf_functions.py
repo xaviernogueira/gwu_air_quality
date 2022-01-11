@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 import netCDF4 as nc
+import pandas as pd
 
 
 def ncf_metadata(ncf_files):
@@ -321,21 +322,52 @@ def extract_vals_from_tropomi(stations_csv, monthly_dir, latlong_file, year=2019
     return print(tropomi_data)
 
 
-def extract_vals_from_cdf(stations_csv, var_name, monthly_dir, interval='month', year=2019):
+def pull_values_for_prediction(no2_file, points_csv, out_folder):
     """
-    Extracts values using lat/long and time (either month or day) from a netcdf F(time, lat, lon) variable.
-    :param stations_csv: A list of station observations with a month column and lat/long values.
-    :param var_name: A string or list of strings representing NetCDF variables with a F(time, lat, lon) structure.
-    :param monthly_dir: A directory storing monthly .nc files.
-    :param interval: A string either 'day', 'month', 'year'. Specifies interval in which to average values. Must also
-    be column headers in the stations_csv file.
-    :param year: Default 2019. Used for recognizing .nc files in the directory.
+    Simular to the sampling function. This creates a csv containing monthly tropomi values for each lat/long pair
     :return:
     """
-    return
+    # get points file as a DataFrame
+    points_df = pd.read_csv(points_csv)
+    p_lats = points_df['POINT_Y'].to_numpy()
+    p_longs = points_df['POINT_X'].to_numpy()
+    length = len(p_longs)
+
+    # generate NO2 netcdf multidimensional numpy array
+    no2_ncf = nc.Dataset(no2_file)
+    no2_raw = no2_ncf.variables['NO2'][:]
+    no2_lats = no2_ncf.variables['lat'][:]
+    no2_longs = no2_ncf.variables['lon'][:]
+
+    for m in range(0, 12):
+        print('Extracting values for month %s' % m)
+        m_label = 'tropomi_m%s' % (m + 1)
+        m_no2 = no2_raw[m]
+        m_list = []  # stores sampled no2 values for each month
+
+        counter = 0
+        lasts = [0]
+        for i, lat in enumerate(p_lats):
+            lon = p_longs[i]
+            lat_ind = find_nearest(no2_lats, float(lat))
+            lon_ind = find_nearest(no2_longs, float(lon))
+            m_list.append(m_no2[lat_ind][lon_ind])
+            counter += 1
+
+            if counter > (lasts[-1] + 1000):
+                print('%s rows completed out of %s' % (counter, length))
+                lasts.append(counter)
+
+        points_df[m_label] = np.array(m_list)
+
+    out_csv = out_folder + '\\points_with_tropomi.csv'
+    points_df.to_csv(out_csv)
+    print('New csv saved @ %s' % out_csv)
+
+    return out_csv
 
 
-
+# lazy mans tropomi: just iterate thru all lat long pairs in prediction csv for each month and pull values
 
 
 
@@ -356,13 +388,17 @@ netcdf_months = r'C:\Users\xrnogueira\Documents\Data\ERA5\CRU_data\Qair_specific
 no2_stations_daily = r'C:\Users\xrnogueira\Documents\Data\NO2_stations\clean_no2_daily_2019.csv'
 #cdf_files = os.listdir(netcdf_months)
 
+# points csv
+points_csv = r'C:\Users\xrnogueira\Documents\Data\Chicago_prediction\points_table.csv'
+
 
 
 #################################################
 def main():
-    ncf_metadata(NO2_AND_LATLONG)
+    #ncf_metadata(NO2_AND_LATLONG)
     #convert_raster(NO2_AND_LATLONG, out_folder='', out_form=['GTiff', '.tif'])
-    #extract_vals_from_tropomi(no2_stations_daily, netcdf_months, LATLONG, year=2019)
+    #convert_ncf_to_nc(NO2_AND_LATLONG)
+    pull_values_for_prediction(NO2_AND_LATLONG, points_csv, DIR)
     return
 
 if __name__ == "__main__":

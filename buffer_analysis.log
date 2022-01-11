@@ -1,30 +1,4 @@
-INFO:root:Pulling values for 100 meter buffer
-INFO:root:Pulling values for 200 meter buffer
-INFO:root:Pulling values for 300 meter buffer
-INFO:root:Pulling values for 400 meter buffer
-INFO:root:Pulling values for 500 meter buffer
-INFO:root:Pulling values for 600 meter buffer
-INFO:root:Pulling values for 700 meter buffer
-INFO:root:Pulling values for 800 meter buffer
-INFO:root:Pulling values for 900 meter buffer
-INFO:root:Pulling values for 1000 meter buffer
-INFO:root:Pulling values for 1100 meter buffer
-INFO:root:Pulling values for 1200 meter buffer
-INFO:root:Pulling values for 1300 meter buffer
-INFO:root:Pulling values for 1400 meter buffer
-INFO:root:Pulling values for 1500 meter buffer
-INFO:root:Pulling values for 1600 meter buffer
-INFO:root:Pulling values for 1700 meter buffer
-INFO:root:Pulling values for 1800 meter buffer
-INFO:root:Pulling values for 1900 meter buffer
-INFO:root:Pulling values for 2000 meter buffer
-INFO:root:Pulling values for 2100 meter buffer
-INFO:root:Pulling values for 2200 meter buffer
-INFO:root:Pulling values for 2300 meter buffer
-INFO:root:Pulling values for 2400 meter buffer
-INFO:root:Pulling values for 2500 meter buffer
-INFO:root:Pulling values for 2600 meter buffer
-INFO:root:Pulling values for 2700 meter buffer
-INFO:root:Pulling values for 2800 meter buffer
-INFO:root:Pulling values for 2900 meter buffer
-INFO:root:Pulling values for 3000 meter buffer
+INFO:root:Making buffer variable rasters....
+INFO:root:Blank raster made and converted to points...
+INFO:root:Variable: p_roads
+INFO:root:Using buffer distance 1000m

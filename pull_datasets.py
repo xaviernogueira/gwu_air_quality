@@ -172,8 +172,16 @@ CSV_DIR = r'C:\Users\xrnogueira\Documents\Data\NO2_stations'
 main_csv = CSV_DIR + '\\master_no2_daily.csv'
 in_csv = CSV_DIR + '\\clean_no2_daily_2019_ZandZr.csv'
 clean_daily = CSV_DIR + '\\clean_no2_daily_2019.csv'
-columns = ['Z']
 test_csv = CSV_DIR + '\\test.csv'
 #build_master_csv(main_csv, in_csv, columns, out_csv=None, join_by=None)
 #make_annual_csv(clean_daily)
-make_monthly_csv(main_csv)
+#make_monthly_csv(main_csv)
+
+# run with prediction tables
+tables_dir = r'C:\Users\xrnogueira\Documents\Data\chicago_tables'
+in_table = tables_dir + '\\sums_1100.csv'
+era_samp = tables_dir + '\\era5_samples.csv'
+combo = tables_dir + '\\chicago_prediction_table.csv'
+columns = ['pod_den_1100']
+build_master_csv(combo, in_table, columns, out_csv=None, join_by=['pointid'])  # run with POINT_X, and POINT_Y
+
